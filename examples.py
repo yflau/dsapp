@@ -37,8 +37,7 @@ def compare():
     print [e if tmin < e < tmax for e in d]
     t1 = time.time()
     print 'Time-consuming(dict) is: %s' %(t1 - t0)
-    
-            
+    t.searchRange(tmin, tmax)
 
 
 if __name__ == '__main__':
