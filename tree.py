@@ -293,16 +293,14 @@ class BinarySearchTree:
         return result
     
     def _searchRange(self, kmin, kmax, result, currentNode):
-        print kmin, currentNode.key, kmax
-        if  kmin < currentNode.key:
-            self._searchRange(kmin, kmax, result, currentNode.leftChild)
-        if kmin <= currentNode.key <= kmax:
-            result.append(currentNode)
-        if currentNode.key < kmin or currentNode.key > kmax:
-            self._searchRange(kmin, kmax, result, currentNode.rightChild)
+        if currentNode:
+            if  kmin < currentNode.key:
+                self._searchRange(kmin, kmax, result, currentNode.leftChild)
+            if kmin <= currentNode.key <= kmax:
+                result.append(currentNode)
+            if kmin > currentNode.key or currentNode.key < kmax:
+                self._searchRange(kmin, kmax, result, currentNode.rightChild)
         
-        #return result
-
     def __getitem__(self, k):
         return self.get(k)
 
@@ -343,5 +341,5 @@ if __name__ == '__main__':
     r.put(5, 'leaf')
     print min.findSuccessor()
     print 'search range:'
-    result = r.searchRange(3, 9)
+    result = r.searchRange(7, 9)
     print result

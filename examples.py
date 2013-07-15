@@ -28,18 +28,22 @@ def compare():
     t = BinarySearchTree()
     with open('test.dat', 'r') as f:
         for line in f:
-            time, user = line.rsplit(' ', 1)
-            d[time] = user
-            t.put(time, user)
+            timestamp, user = line.rsplit(' ', 1)
+            d[timestamp] = user
+            t.put(timestamp, user)
     tmin = '2013-07-01 12:00:00'
-    tmax = '2013-07-10 12:00:00'
+    tmax = '2013-07-05 18:00:00'
     t0 = time.time()
-    print [e if tmin < e < tmax for e in d]
+    result = [e for e in d if tmin < e < tmax ]
     t1 = time.time()
     print 'Time-consuming(dict) is: %s' %(t1 - t0)
-    t.searchRange(tmin, tmax)
+    print len(result)
+    result = t.searchRange(tmin, tmax)
+    print 'Time-consuming(bst) is: %s' %(time.time() - t1)
+    print len(result)
 
 
 if __name__ == '__main__':
-    generate_data()
+    #generate_data()
+    compare()
 
