@@ -2,6 +2,10 @@
 # coding: utf-8
 
 
+import sys
+from Queue import Queue
+
+
 class TreeNode:
     
     def __init__(self, key, val, left=None, right=None, parent=None):
@@ -101,6 +105,19 @@ class TreeNode:
     def __repr__(self):
         return '[k, v]: %s, %s' %(self.key, self.payload)
 
+    def pprint(self):
+        length = len(str(self.key))
+        r = str(self.key).center(length+2)
+        i = '/%s\\' % ' ' * length
+        if self.hasBothChildren():
+            i = '/%s\\' % ' ' * length
+        elif self.hasLeftChild():
+            i = '/%s ' % ' ' * length
+        elif self.hasRightChild():
+            i = ' %s\\' % ' ' * length
+        else:
+            i = '  '
+        return r, i
 
 class BinarySearchTree:
 
@@ -218,9 +235,57 @@ class BinarySearchTree:
             if kmin > currentNode.key or currentNode.key < kmax:
                 self._searchRange(kmin, kmax, result, currentNode.rightChild)
     
+    def splitLevels(self):
+        if self.root:
+            level = 1
+            leveldict = {1: [self.root]}
+            while 1:
+                for node in leveldict.get(level):
+                    print node
+                    maxlevel = []
+                    if node.hasBothChildren():
+                        leveldict.setdefault(level+1, []).append(node.leftChild)
+                        leveldict.setdefault(level+1, []).append(node.rightChild)
+                        maxlevel.append(False)
+                    elif node.hasLeftChild():
+                        leveldict.setdefault(level+1, []).append(node.leftChild)
+                        maxlevel.append(False)
+                    elif node.hasRightChild():
+                        leveldict.setdefault(level+1, []).append(node.rightChild)
+                        maxlevel.append(False)
+                    else:
+                        maxlevel.append(True)
+                if all(maxlevel):
+                    break
+                level += 1
+            return leveldict
+        else:
+            return {}
+    
     def pprint(self):
-        pass
-            
+        leveldict = self.splitLevels()
+        levels = leveldict.keys()
+        for level in levels:
+            nodes = leveldict.get(level)
+            print ''.join([n.pprint()[0] for n in nodes])
+            print ''.join([n.pprint()[1] for n in nodes])
+
+    def printLevelOrder(self):
+        if not self.root:
+            return
+        currentLevel = Queue()
+        nextLevel = Queue()
+        currentLevel.put(self.root)
+        while not currentLevel.empty():
+            curNode = currentLevel.get()
+            if curNode:
+                sys.stdout.write('%s ' % curNode.key)
+                nextLevel.put(curNode.leftChild)
+                nextLevel.put(curNode.rightChild)
+            if currentLevel.empty():
+                sys.stdout.write('\n')
+                currentLevel, nextLevel = nextLevel, currentLevel
+
     def __getitem__(self, k):
         return self.get(k)
 
@@ -250,6 +315,7 @@ if __name__ == '__main__':
     r.put(3, 'left')
     r.put(9, 'right')
     r.put(5, 'where')
+    r.put(2, 'two')
     min = r.root.findMin()
     print min.findSuccessor().isLeaf()
     print min.isLeaf()
@@ -259,7 +325,17 @@ if __name__ == '__main__':
     r.delete(5)
     print min.findSuccessor()
     r.put(5, 'leaf')
+    r.put(4, 'test')
+    r.put(10, 'large')
     print min.findSuccessor()
     print 'search range:'
     result = r.searchRange(7, 9)
     print result
+    print
+    print r.size
+    from pprint import pprint
+    pprint(r.splitLevels())
+    r.pprint()
+    r.printLevelOrder()
+    print
+    print r
