@@ -6,7 +6,7 @@ import random
 import string
 from datetime import datetime
 
-from tree import BinarySearchTree
+from bst import BinarySearchTree
 from decorators import profile, profileit, print_stats
 
 @profileit
