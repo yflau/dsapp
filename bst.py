@@ -102,6 +102,9 @@ class TreeNode:
     def __str__(self):
         return '[k, v]: %s, %s' %(self.key, self.payload)
 
+    def __str__(self):
+        return '(%s) ' % self.key
+
     def __repr__(self):
         return '[k, v]: %s, %s' %(self.key, self.payload)
 
@@ -286,6 +289,78 @@ class BinarySearchTree:
                 sys.stdout.write('\n')
                 currentLevel, nextLevel = nextLevel, currentLevel
 
+    def printTree(self):
+        nodes = self.inorder()
+        length = [len(str(e)) for e in nodes]
+        leveldict = self.splitLevels()
+        levels = leveldict.keys()
+        for level in levels:
+            levelnodes = leveldict.get(level)
+            starts = []
+            ends = []
+            branches = []
+            for node in levelnodes:
+                index = nodes.index(node)
+                start = sum([len(str(e)) for e in nodes[:index]])
+                end = start + len(str(node))
+                starts.append(start)
+                ends.append(end)
+                if node.isLeftChild():
+                    branches.append((end-1, '/'))
+                elif node.isRightChild():
+                    branches.append((start-1, '\\'))
+                else:
+                    pass
+            if level > 1:
+                spaces = [branches[0][0]]
+                spaces.extend([branches[k+1][0] - branches[k][0] - 1 for k in range(len(branches)-1)])
+                pair = ['%s%s' % (' '*spaces[m], branches[m][1]) for m in range(len(branches))]
+                print ''.join(pair)
+            spaces = [starts[0]]
+            spaces.extend([starts[i] - ends[i-1] for i in range(1, len(starts))])
+            pair = ['%s%s' % (' '*spaces[j], levelnodes[j]) for j in range(len(spaces))]
+            print ''.join(pair)
+
+
+    def preorder(self):
+        return self._preorder(self.root)
+    
+    def _preorder(self, currentNode):
+        nodes = []
+        nodes.append(currentNode)
+        if currentNode.hasLeftChild():
+            nodes.extend(self._preorder(currentNode.leftChild))
+        if currentNode.hasRightChild:
+            nodes.extend(self._preorder(currentNode.rightChild))
+        
+        return nodes
+
+    def inorder(self):
+        return self._inorder(self.root)
+    
+    def _inorder(self, currentNode):
+        nodes = []
+        if currentNode.hasLeftChild():
+            nodes.extend(self._inorder(currentNode.leftChild))
+        nodes.append(currentNode)
+        if currentNode.hasRightChild():
+            nodes.extend(self._inorder(currentNode.rightChild))
+        
+        return nodes
+
+    def postorder(self):
+        return self._postorder(self.root)
+    
+    def _postorder(self, currentNode):
+        nodes = []
+        if currentNode.hasLeftChild():
+            nodes.extend(self._postorder(currentNode.leftChild))
+        nodes.append(currentNode)
+        if currentNode.hasRightChild():
+            nodes.extend(self._postorder(currentNode.rightChild))
+        
+        return nodes
+
     def __getitem__(self, k):
         return self.get(k)
 
@@ -338,4 +413,6 @@ if __name__ == '__main__':
     r.pprint()
     r.printLevelOrder()
     print
-    print r
+    print r.inorder()
+    print
+    print r.printTree()
