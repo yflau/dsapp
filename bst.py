@@ -108,19 +108,6 @@ class TreeNode:
     def __repr__(self):
         return '[k, v]: %s, %s' %(self.key, self.payload)
 
-    def pprint(self):
-        length = len(str(self.key))
-        r = str(self.key).center(length+2)
-        i = '/%s\\' % ' ' * length
-        if self.hasBothChildren():
-            i = '/%s\\' % ' ' * length
-        elif self.hasLeftChild():
-            i = '/%s ' % ' ' * length
-        elif self.hasRightChild():
-            i = ' %s\\' % ' ' * length
-        else:
-            i = '  '
-        return r, i
 
 class BinarySearchTree:
 
@@ -237,41 +224,6 @@ class BinarySearchTree:
                 result.append(currentNode)
             if kmin > currentNode.key or currentNode.key < kmax:
                 self._searchRange(kmin, kmax, result, currentNode.rightChild)
-    
-    def splitLevels(self):
-        if self.root:
-            level = 1
-            leveldict = {1: [self.root]}
-            while 1:
-                for node in leveldict.get(level):
-                    print node
-                    maxlevel = []
-                    if node.hasBothChildren():
-                        leveldict.setdefault(level+1, []).append(node.leftChild)
-                        leveldict.setdefault(level+1, []).append(node.rightChild)
-                        maxlevel.append(False)
-                    elif node.hasLeftChild():
-                        leveldict.setdefault(level+1, []).append(node.leftChild)
-                        maxlevel.append(False)
-                    elif node.hasRightChild():
-                        leveldict.setdefault(level+1, []).append(node.rightChild)
-                        maxlevel.append(False)
-                    else:
-                        maxlevel.append(True)
-                if all(maxlevel):
-                    break
-                level += 1
-            return leveldict
-        else:
-            return {}
-    
-    def pprint(self):
-        leveldict = self.splitLevels()
-        levels = leveldict.keys()
-        for level in levels:
-            nodes = leveldict.get(level)
-            print ''.join([n.pprint()[0] for n in nodes])
-            print ''.join([n.pprint()[1] for n in nodes])
 
     def printLevelOrder(self):
         if not self.root:
@@ -288,6 +240,29 @@ class BinarySearchTree:
             if currentLevel.empty():
                 sys.stdout.write('\n')
                 currentLevel, nextLevel = nextLevel, currentLevel
+
+
+    def splitLevels(self):
+        if self.root:
+            level = 1
+            leveldict = {1: [self.root]}
+            while 1:
+                maxlevel = []
+                for node in leveldict.get(level):
+                    if node.leftChild != None:
+                        leveldict.setdefault(level+1, []).append(node.leftChild)
+                        maxlevel.append(False)
+                    if node.rightChild != None:
+                        leveldict.setdefault(level+1, []).append(node.rightChild)
+                        maxlevel.append(False)
+                    if node.isLeaf():
+                        maxlevel.append(True)
+                if all(maxlevel):
+                    break
+                level += 1
+            return leveldict
+        else:
+            return {}
 
     def printTree(self):
         nodes = self.inorder()
@@ -310,7 +285,8 @@ class BinarySearchTree:
                 elif node.isRightChild():
                     branches.append((start-1, '\\'))
                 else:
-                    pass
+                    if level > 1:
+                        print 'error node: ', node
             if level > 1:
                 spaces = [branches[0][0]]
                 spaces.extend([branches[k+1][0] - branches[k][0] - 1 for k in range(len(branches)-1)])
@@ -407,12 +383,5 @@ if __name__ == '__main__':
     result = r.searchRange(7, 9)
     print result
     print
-    print r.size
-    from pprint import pprint
-    pprint(r.splitLevels())
-    r.pprint()
     r.printLevelOrder()
-    print
-    print r.inorder()
-    print
-    print r.printTree()
+    r.printTree()

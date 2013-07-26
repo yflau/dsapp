@@ -4,12 +4,17 @@
 import sys
 import random
 
+MAXINT = 1000
+
 class TreapNode(object):
     
-    def __init__(self, key, val, left=None, right=None, parent=None):
+    def __init__(self, key, val, left=None, right=None, parent=None, priority=None):
         self.key = key
         self.payload = val
-        self.priority = random.randint(0, sys.maxint)
+        if priority == None:
+            self.priority = random.randint(0, MAXINT)
+        else:
+            self.priority = priority
         self.leftChild = left
         self.rightChild = right
         self.parent = parent
@@ -100,6 +105,9 @@ class TreapNode(object):
     def __str__(self):
         return '[k, v]: %s, %s' %(self.key, self.payload)
 
+    def __str__(self):
+        return '(%s:%s) ' % (self.key, self.priority)
+
     def __repr__(self):
         return '[k, v]: %s, %s' %(self.key, self.payload)
 
@@ -114,52 +122,72 @@ class Treap(object):
         return self.size
 
 
-    def put(self, key, val):
+    def put(self, key, val, priority = None):
         if self.root:
-            self._put(key, val, self.root)
+            self._put(key, val, self.root, priority = priority)
         else:
-            self.root = TreapNode(key, val)
+            self.root = TreapNode(key, val, priority = priority)
         self.size += 1
 
-    def _put(self, key, val, currentNode):
+    def _put(self, key, val, currentNode, priority = None):
         if key < currentNode.key:
             if currentNode.hasLeftChild():
-                self._put(key, val, currentNode.leftChild)
+                self._put(key, val, currentNode.leftChild, priority = priority)
             else:
-                currentNode.leftChild = TreapNode(key, val, parent = currentNode)
-                if currentNode.leftChild.priority < currentNode.priority:
-                    self.leftRotate(currentNode)
+                currentNode.leftChild = TreapNode(key, val, parent = currentNode, priority = priority)
+            if currentNode.leftChild.priority < currentNode.priority:
+                self.rightRotate(currentNode)
         elif key > currentNode.key:
             if currentNode.hasRightChild():
-                self._put(key, val, currentNode.rightChild)
+                self._put(key, val, currentNode.rightChild, priority = priority)
             else:
-                currentNode.rightChild = TreapNode(key, val, parent = currentNode)
-                if currentNode.rightChild < currentNode.priority:
-                    self.rightRotate(currentNode)
+                currentNode.rightChild = TreapNode(key, val, parent = currentNode, priority = priority)
+            if currentNode.rightChild.priority < currentNode.priority:
+                self.leftRotate(currentNode)
         else:
             currentNode.payload = val
-            #currentNode.priority = random.randint(0, sys.maxint)
+            currentNode.priority = random.randint(0, MAXINT)
 
 
     def leftRotate(self, currentNode):
         """From bottom to up."""
         node = currentNode.rightChild
         currentNode.rightChild = node.leftChild
+        if node.leftChild != None:
+            node.leftChild.parent = currentNode
+        node.parent = currentNode.parent
+        if currentNode.isRoot():
+            self.root = node
+        else:
+            if currentNode.isLeftChild():
+                currentNode.parent.leftChild = node
+            else:
+                currentNode.parent.rightChild = node
         node.leftChild = currentNode
-        currentNode = node
+        currentNode.parent = node
 
     def rightRotate(self, currentNode):
         """From bottom to up."""
         node = currentNode.leftChild
         currentNode.leftChild = node.rightChild
+        if node.rightChild != None:
+            node.rightChild.parent = currentNode
+        node.parent = currentNode.parent
+        if currentNode.isRoot():
+            self.root = node
+        else:
+            if currentNode.isLeftChild():
+                currentNode.parent.leftChild = node
+            else:
+                currentNode.parent.rightChild = node
         node.rightChild = currentNode
-        currentNode = node
+        currentNode.parent = node
     
     def get(self, key):
         if self.root:
             res = self._get(key, self.root)
             if res:
-                return res.payload
+                return res
             else:
                 return None
         else:
@@ -200,11 +228,178 @@ class Treap(object):
                 self.rightRotate(currentNode)
             else:
                 self.leftRotate(currentNode)
-            self.delete(key)
-        elif:
+            self.remove(currentNode)
+        else:
             if currentNode.hasLeftChild():
                 currentNode.parent.leftChild = currentNode.leftChild
                 currentNode.leftChild.parent = currentNode.parent
             if currentNode.hasRightChild():
                 currentNode.parent.rightChild = currentNode.rightChild
                 currentNode.rightChild.parent = currentNode.parent
+
+    def searchRange(self, kmin, kmax):
+        result = []
+        if self.root:
+            self._searchRange(kmin, kmax, result, self.root)
+        return result
+    
+    def _searchRange(self, kmin, kmax, result, currentNode):
+        if currentNode:
+            if  kmin < currentNode.key:
+                self._searchRange(kmin, kmax, result, currentNode.leftChild)
+            if kmin <= currentNode.key <= kmax:
+                result.append(currentNode)
+            if kmin > currentNode.key or currentNode.key < kmax:
+                self._searchRange(kmin, kmax, result, currentNode.rightChild)
+
+
+    def splitLevels(self):
+        if self.root:
+            level = 1
+            leveldict = {1: [self.root]}
+            while 1:
+                maxlevel = []
+                for node in leveldict.get(level):
+                    if node.leftChild != None:
+                        leveldict.setdefault(level+1, []).append(node.leftChild)
+                        maxlevel.append(False)
+                    if node.rightChild != None:
+                        leveldict.setdefault(level+1, []).append(node.rightChild)
+                        maxlevel.append(False)
+                    if node.isLeaf():
+                        maxlevel.append(True)
+                if all(maxlevel):
+                    break
+                level += 1
+            return leveldict
+        else:
+            return {}
+
+    def printTree(self):
+        nodes = self.inorder()
+        length = [len(str(e)) for e in nodes]
+        leveldict = self.splitLevels()
+        levels = leveldict.keys()
+        for level in levels:
+            levelnodes = leveldict.get(level)
+            starts = []
+            ends = []
+            branches = []
+            for node in levelnodes:
+                index = nodes.index(node)
+                start = sum([len(str(e)) for e in nodes[:index]])
+                end = start + len(str(node))
+                starts.append(start)
+                ends.append(end)
+                if node.isLeftChild():
+                    branches.append((end-1, '/'))
+                elif node.isRightChild():
+                    branches.append((start-1, '\\'))
+                else:
+                    if level > 1:
+                        print 'error node: ', node
+            if level > 1:
+                spaces = [branches[0][0]]
+                spaces.extend([branches[k+1][0] - branches[k][0] - 1 for k in range(len(branches)-1)])
+                pair = ['%s%s' % (' '*spaces[m], branches[m][1]) for m in range(len(branches))]
+                print ''.join(pair)
+            spaces = [starts[0]]
+            spaces.extend([starts[i] - ends[i-1] for i in range(1, len(starts))])
+            pair = ['%s%s' % (' '*spaces[j], levelnodes[j]) for j in range(len(spaces))]
+            print ''.join(pair)
+
+
+    def preorder(self):
+        return self._preorder(self.root)
+    
+    def _preorder(self, currentNode):
+        nodes = []
+        nodes.append(currentNode)
+        if currentNode.hasLeftChild():
+            nodes.extend(self._preorder(currentNode.leftChild))
+        if currentNode.hasRightChild:
+            nodes.extend(self._preorder(currentNode.rightChild))
+        
+        return nodes
+
+    def inorder(self):
+        return self._inorder(self.root)
+    
+    def _inorder(self, currentNode):
+        nodes = []
+        if currentNode.hasLeftChild():
+            nodes.extend(self._inorder(currentNode.leftChild))
+        nodes.append(currentNode)
+        if currentNode.hasRightChild():
+            nodes.extend(self._inorder(currentNode.rightChild))
+        
+        return nodes
+
+    def postorder(self):
+        return self._postorder(self.root)
+    
+    def _postorder(self, currentNode):
+        nodes = []
+        if currentNode.hasLeftChild():
+            nodes.extend(self._postorder(currentNode.leftChild))
+        nodes.append(currentNode)
+        if currentNode.hasRightChild():
+            nodes.extend(self._postorder(currentNode.rightChild))
+        
+        return nodes
+
+    def __getitem__(self, k):
+        return self.get(k)
+
+    def __contains__(self, k):
+        if self._get(k, self.root):
+            return True
+        else:
+            return False
+
+    def __setitem__(self, k, v):
+        self.put(k, v)
+
+    def __delitem__(self, key):
+        self.delete(key)
+
+    def __len__(self):
+        return self.size
+
+    def __iter__(self):
+        return self.root.__iter__()
+
+if __name__ == '__main__':
+    #test_BinaryTree()
+    r = Treap()
+    #r.put(1, 'first', 200)
+    #r.put(2, 'two', 408)
+    #r.put(3, 'third', 456)
+    #r.put(4, 'four', 179)
+    #r.put(5, 'five', 363) 
+    
+    r.put(1, 'first')
+    r.put(2, 'two')
+    r.put(3, 'third')
+    r.put(4, 'four')
+    r.put(5, 'five')
+    r.put(6, 'six')
+    r.put(7, 'seven')
+    r.put(8, 'eight')
+    r.put(9, 'nine')
+    r.printTree()
+    r.delete(r.root.key)
+    #r.put(5, 'five')
+    
+    #r.put(2, 'two')
+    #r.delete(5)
+    #r.put(5, 'leaf')
+    #r.put(4, 'test')
+    #r.put(10, 'large')
+    #print min.findSuccessor()
+    #print 'search range:'
+    #result = r.searchRange(7, 9)
+    #print result
+    print 'Treap size: ', r.size
+    r.printTree()
+    print r.searchRange(3, 7)
