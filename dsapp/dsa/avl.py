@@ -1,16 +1,17 @@
 #! /usr/bin/env python
-# coding: utf-8
-
+#coding: utf-8
 
 import sys
-from Queue import Queue
+import random
 
+MAXINT = 1000
 
-class TreeNode:
+class AVLNode(object):
     
     def __init__(self, key, val, left=None, right=None, parent=None):
         self.key = key
         self.payload = val
+        self.balance = 0
         self.leftChild = left
         self.rightChild = right
         self.parent = parent
@@ -48,27 +49,7 @@ class TreeNode:
             self.leftChild.parent = self
         if self.hasRightChild():
             self.rightChild.parent = self
-    
-    def spliceOut(self):
-        if self.isLeaf():
-            if self.isLeftChild():
-                self.parent.leftChild = None
-            else:
-                self.parent.rightChild = None
-        elif self.hasAnyChildren():
-            if self.hasLeftChild():
-                if self.isLeftChild():
-                    self.parent.leftChild = self.leftChild
-                else:
-                    self.parent.rightChild = self.leftChild
-                self.leftChild.parent = self.parent
-            else:
-                if self.isLeftChild():
-                    self.parent.leftChild = self.rightChild
-                else:
-                    self.parent.rightChild = self.rightChild
-                self.rightChild.parent = self.parent
-    
+
     def findSuccessor(self):
         succ = None
         if self.hasRightChild():
@@ -82,11 +63,30 @@ class TreeNode:
                     succ = self.parent.findSuccessor()
                     self.parent.rightChild = self
         return succ
-    
+
+    def findPrecursor(self):
+        prec = None
+        if self.hasLeftChild():
+            prec = self.leftChild.findMax()
+        else:
+            if self.parent:
+                if self.isRightChild():
+                    prec = self.parent
+                else:
+                    self.parent.leftChild = None
+                    self.parent.findPrecursor()
+                    self.parent.leftChild = self
+
     def findMin(self):
         current = self
         while current.hasLeftChild():
             current = current.leftChild
+        return current
+
+    def findMax(self):
+        current = self
+        while current.hasRightChild():
+            current = current.rightChild
         return current
 
     def __iter__(self):
@@ -100,16 +100,12 @@ class TreeNode:
                   yield elem
 
     def __str__(self):
-        return '[k, v]: %s, %s' %(self.key, self.payload)
+        return '(%s:%s) ' % (self.key, self.balance)
 
-    def __str__(self):
-        return '(%s) ' % self.key
-
-    def __repr__(self):
-        return '[k, v]: %s, %s' %(self.key, self.payload)
+    __repr__ = __str__
 
 
-class BinarySearchTree:
+class AVLTree(object):
 
     def __init__(self):
         self.root = None
@@ -118,11 +114,12 @@ class BinarySearchTree:
     def length(self):
         return self.size
 
+
     def put(self, key, val):
         if self.root:
             self._put(key, val, self.root)
         else:
-            self.root = TreeNode(key, val)
+            self.root = AVLNode(key, val)
         self.size += 1
 
     def _put(self, key, val, currentNode):
@@ -130,20 +127,87 @@ class BinarySearchTree:
             if currentNode.hasLeftChild():
                 self._put(key, val, currentNode.leftChild)
             else:
-                currentNode.leftChild = TreeNode(key, val, parent = currentNode)
+                currentNode.leftChild = AVLNode(key, val, parent = currentNode)
+                self.updateBalance(currentNode.leftChild)
         elif key > currentNode.key:
             if currentNode.hasRightChild():
                 self._put(key, val, currentNode.rightChild)
             else:
-                currentNode.rightChild = TreeNode(key, val, parent = currentNode)
-        else:
-            currentNode.payload = val
+                currentNode.rightChild = AVLNode(key, val, parent = currentNode)
+                self.updateBalance(currentNode.rightChild)
 
+    def updateBalance(self, node):
+        if node.balance < -1 or node.balance > 1:
+            self.rebalance(node)
+            return
+        if node.parent != None:
+            if node.isLeftChild():
+                node.parent.balance += 1
+            elif node.isRightChild():
+                node.parent.balance -= 1
+            if node.parent.balance != 0:
+                self.updateBalance(node.parent)
+
+    def rebalance(self, node):
+        if node.balance < 0:
+            if node.rightChild.balance > 0:
+                self.rightRotate(node.rightChild)
+                self.leftRotate(node)
+            else:
+                self.leftRotate(node)
+        elif node.balance > 0:
+            #print node
+            if node.leftChild.balance < 0:
+                self.leftRotate(node.leftChild)
+                self.rightRotate(node)
+            else:
+                self.rightRotate(node)
+
+    def leftRotate(self, currentNode):
+        """From bottom to up."""
+        node = currentNode.rightChild
+        currentNode.rightChild = node.leftChild
+        if node.leftChild != None:
+            node.leftChild.parent = currentNode
+        node.parent = currentNode.parent
+        if currentNode.isRoot():
+            self.root = node
+        else:
+            if currentNode.isLeftChild():
+                currentNode.parent.leftChild = node
+            else:
+                currentNode.parent.rightChild = node
+        node.leftChild = currentNode
+        currentNode.parent = node
+        currentNode.balance = currentNode.balance + 1 - min(node.balance, 0)
+        node.balance = node.balance + 1 + max(currentNode.balance, 0) 
+
+
+    def rightRotate(self, currentNode):
+        """From bottom to up."""
+        node = currentNode.leftChild
+        currentNode.leftChild = node.rightChild
+        if node.rightChild != None:
+            node.rightChild.parent = currentNode
+        node.parent = currentNode.parent
+        if currentNode.isRoot():
+            self.root = node
+        else:
+            if currentNode.isLeftChild():
+                currentNode.parent.leftChild = node
+            else:
+                currentNode.parent.rightChild = node
+        node.rightChild = currentNode
+        currentNode.parent = node
+        currentNode.balance = currentNode.balance - 1 - max(node.balance, 0)
+        node.balance = node.balance - 1 + min(currentNode.balance, 0) 
+
+    
     def get(self, key):
         if self.root:
             res = self._get(key, self.root)
             if res:
-                return res.payload
+                return res
             else:
                 return None
         else:
@@ -158,7 +222,7 @@ class BinarySearchTree:
             return self._get(key, currentNode.leftChild)
         else:
             return self._get(key, currentNode.rightChild)
-
+    
     def delete(self, key):
         if self.size > 1:
             node = self._get(key, self.root)
@@ -180,35 +244,18 @@ class BinarySearchTree:
             else:
                 currentNode.parent.rightChild = None
         elif currentNode.hasBothChildren(): #interior
-            succ = currentNode.findSuccessor()
-            succ.spliceOut()
-            currentNode.key = succ.key
-            currentNode.payload = succ.payload
-        else: # this node has one child
-            if currentNode.hasLeftChild():
-                if currentNode.isLeftChild():
-                    currentNode.leftChild.parent = currentNode.parent
-                    currentNode.parent.leftChild = currentNode.leftChild
-                elif currentNode.isRightChild():
-                    currentNode.leftChild.parent = currentNode.parent
-                    currentNode.parent.rightChild = currentNode.leftChild
-                else:
-                    currentNode.replaceNodeData(currentNode.leftChild.key,
-                                       currentNode.leftChild.payload,
-                                       currentNode.leftChild.leftChild,
-                                       currentNode.leftChild.rightChild)
+            if currentNode.leftChild.priority < currentNode.rightChild.priority:
+                self.rightRotate(currentNode)
             else:
-                if currentNode.isLeftChild():
-                    currentNode.rightChild.parent = currentNode.parent
-                    currentNode.parent.leftChild = currentNode.rightChild
-                elif currentNode.isRightChild():
-                    currentNode.rightChild.parent = currentNode.parent
-                    currentNode.parent.rightChild = currentNode.rightChild
-                else:
-                    currentNode.replaceNodeData(currentNode.rightChild.key,
-                                       currentNode.rightChild.payload,
-                                       currentNode.rightChild.leftChild,
-                                       currentNode.rightChild.rightChild)
+                self.leftRotate(currentNode)
+            self.remove(currentNode)
+        else:
+            if currentNode.hasLeftChild():
+                currentNode.parent.leftChild = currentNode.leftChild
+                currentNode.leftChild.parent = currentNode.parent
+            if currentNode.hasRightChild():
+                currentNode.parent.rightChild = currentNode.rightChild
+                currentNode.rightChild.parent = currentNode.parent
 
     def searchRange(self, kmin, kmax):
         result = []
@@ -224,22 +271,6 @@ class BinarySearchTree:
                 result.append(currentNode)
             if kmin > currentNode.key or currentNode.key < kmax:
                 self._searchRange(kmin, kmax, result, currentNode.rightChild)
-
-    def printLevelOrder(self):
-        if not self.root:
-            return
-        currentLevel = Queue()
-        nextLevel = Queue()
-        currentLevel.put(self.root)
-        while not currentLevel.empty():
-            curNode = currentLevel.get()
-            if curNode:
-                sys.stdout.write('%s ' % curNode.key)
-                nextLevel.put(curNode.leftChild)
-                nextLevel.put(curNode.rightChild)
-            if currentLevel.empty():
-                sys.stdout.write('\n')
-                currentLevel, nextLevel = nextLevel, currentLevel
 
 
     def splitLevels(self):
@@ -358,30 +389,24 @@ class BinarySearchTree:
     def __iter__(self):
         return self.root.__iter__()
 
-
 if __name__ == '__main__':
     #test_BinaryTree()
-    r = BinarySearchTree()
-    r.put(6, 'root')
-    r.put(3, 'left')
-    r.put(9, 'right')
-    r.put(5, 'where')
+    r = AVLTree()
+    r.put(1, 'first')
     r.put(2, 'two')
-    min = r.root.findMin()
-    print min.findSuccessor().isLeaf()
-    print min.isLeaf()
-    print r.root
-    print r.root.findSuccessor()
-    print r.get(9)
-    r.delete(5)
-    print min.findSuccessor()
-    r.put(5, 'leaf')
-    r.put(4, 'test')
-    r.put(10, 'large')
-    print min.findSuccessor()
-    print 'search range:'
-    result = r.searchRange(7, 9)
-    print result
-    print
-    r.printLevelOrder()
+    r.put(3, 'third')
+    r.put(4, 'four')
+    r.put(5, 'five')
+    r.put(6, 'six')
+    r.put(7, 'seven')
+    r.put(8, 'eight')
+    r.put(9, 'nine')
+    r.put(10, 'ten')
+    r.put(11, 'elenve')
+    #r.printTree()
+    #r.delete(r.root.key)
+    #r.put(5, 'five')
+
+    print 'AVL size: ', r.size
     r.printTree()
+    print r.searchRange(3, 7)

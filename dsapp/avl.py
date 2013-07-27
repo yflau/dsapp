@@ -6,15 +6,12 @@ import random
 
 MAXINT = 1000
 
-class TreapNode(object):
+class AVLNode(object):
     
-    def __init__(self, key, val, left=None, right=None, parent=None, priority=None):
+    def __init__(self, key, val, left=None, right=None, parent=None):
         self.key = key
         self.payload = val
-        if priority == None:
-            self.priority = random.randint(0, MAXINT)
-        else:
-            self.priority = priority
+        self.balance = 0
         self.leftChild = left
         self.rightChild = right
         self.parent = parent
@@ -103,16 +100,12 @@ class TreapNode(object):
                   yield elem
 
     def __str__(self):
-        return '[k, v]: %s, %s' %(self.key, self.payload)
+        return '(%s:%s) ' % (self.key, self.balance)
 
-    def __str__(self):
-        return '(%s:%s) ' % (self.key, self.priority)
-
-    def __repr__(self):
-        return '[k, v]: %s, %s' %(self.key, self.payload)
+    __repr__ = __str__
 
 
-class Treap(object):
+class AVLTree(object):
 
     def __init__(self):
         self.root = None
@@ -122,32 +115,53 @@ class Treap(object):
         return self.size
 
 
-    def put(self, key, val, priority = None):
+    def put(self, key, val):
         if self.root:
-            self._put(key, val, self.root, priority = priority)
+            self._put(key, val, self.root)
         else:
-            self.root = TreapNode(key, val, priority = priority)
+            self.root = AVLNode(key, val)
         self.size += 1
 
-    def _put(self, key, val, currentNode, priority = None):
+    def _put(self, key, val, currentNode):
         if key < currentNode.key:
             if currentNode.hasLeftChild():
-                self._put(key, val, currentNode.leftChild, priority = priority)
+                self._put(key, val, currentNode.leftChild)
             else:
-                currentNode.leftChild = TreapNode(key, val, parent = currentNode, priority = priority)
-            if currentNode.leftChild.priority < currentNode.priority:
-                self.rightRotate(currentNode)
+                currentNode.leftChild = AVLNode(key, val, parent = currentNode)
+                self.updateBalance(currentNode.leftChild)
         elif key > currentNode.key:
             if currentNode.hasRightChild():
-                self._put(key, val, currentNode.rightChild, priority = priority)
+                self._put(key, val, currentNode.rightChild)
             else:
-                currentNode.rightChild = TreapNode(key, val, parent = currentNode, priority = priority)
-            if currentNode.rightChild.priority < currentNode.priority:
-                self.leftRotate(currentNode)
-        else:
-            currentNode.payload = val
-            currentNode.priority = random.randint(0, MAXINT)
+                currentNode.rightChild = AVLNode(key, val, parent = currentNode)
+                self.updateBalance(currentNode.rightChild)
 
+    def updateBalance(self, node):
+        if node.balance < -1 or node.balance > 1:
+            self.rebalance(node)
+            return
+        if node.parent != None:
+            if node.isLeftChild():
+                node.parent.balance += 1
+            elif node.isRightChild():
+                node.parent.balance -= 1
+            if node.parent.balance != 0:
+                self.updateBalance(node.parent)
+
+    def rebalance(self, node):
+        if node.balance < 0:
+            if node.rightChild.balance > 0:
+                self.rightRotate(node.rightChild)
+                self.leftRotate(node)
+            else:
+                self.leftRotate(node)
+        elif node.balance > 0:
+            #print node
+            if node.leftChild.balance < 0:
+                self.leftRotate(node.leftChild)
+                self.rightRotate(node)
+            else:
+                self.rightRotate(node)
 
     def leftRotate(self, currentNode):
         """From bottom to up."""
@@ -165,6 +179,9 @@ class Treap(object):
                 currentNode.parent.rightChild = node
         node.leftChild = currentNode
         currentNode.parent = node
+        currentNode.balance = currentNode.balance + 1 - min(node.balance, 0)
+        node.balance = node.balance + 1 + max(currentNode.balance, 0) 
+
 
     def rightRotate(self, currentNode):
         """From bottom to up."""
@@ -182,6 +199,9 @@ class Treap(object):
                 currentNode.parent.rightChild = node
         node.rightChild = currentNode
         currentNode.parent = node
+        currentNode.balance = currentNode.balance - 1 - max(node.balance, 0)
+        node.balance = node.balance - 1 + min(currentNode.balance, 0) 
+
     
     def get(self, key):
         if self.root:
@@ -371,13 +391,7 @@ class Treap(object):
 
 if __name__ == '__main__':
     #test_BinaryTree()
-    r = Treap()
-    #r.put(1, 'first', 200)
-    #r.put(2, 'two', 408)
-    #r.put(3, 'third', 456)
-    #r.put(4, 'four', 179)
-    #r.put(5, 'five', 363) 
-    
+    r = AVLTree()
     r.put(1, 'first')
     r.put(2, 'two')
     r.put(3, 'third')
@@ -387,19 +401,12 @@ if __name__ == '__main__':
     r.put(7, 'seven')
     r.put(8, 'eight')
     r.put(9, 'nine')
-    r.printTree()
-    r.delete(r.root.key)
+    r.put(10, 'ten')
+    r.put(11, 'elenve')
+    #r.printTree()
+    #r.delete(r.root.key)
     #r.put(5, 'five')
-    
-    #r.put(2, 'two')
-    #r.delete(5)
-    #r.put(5, 'leaf')
-    #r.put(4, 'test')
-    #r.put(10, 'large')
-    #print min.findSuccessor()
-    #print 'search range:'
-    #result = r.searchRange(7, 9)
-    #print result
-    print 'Treap size: ', r.size
+
+    print 'AVL size: ', r.size
     r.printTree()
     print r.searchRange(3, 7)
