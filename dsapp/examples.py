@@ -9,15 +9,18 @@ from datetime import datetime
 from bst import BinarySearchTree
 from treap import Treap
 from avl import AVLTree
+from sbt import SBTree
 
 from decorators import profile, profileit, print_stats
+
+TDATA = '%s.dat' % __file__
 
 @profileit
 def generate_data(number = 1000000):
     """Format: 2013-07-14 20:31:45 liuyun"""
     startdate = int(time.mktime(datetime(2013, 5, 1).timetuple()))
     enddate = int(time.mktime(datetime(2013, 8, 31).timetuple()))
-    with open('test.dat', 'w') as f:
+    with open(TDATA, 'w') as f:
         for i in xrange(number):
             timestamp = random.randint(startdate, enddate)
             f.write(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp)))
@@ -39,12 +42,13 @@ def compare():
     t = BinarySearchTree()
     treap = Treap()
     avl = AVLTree()
+    sbt = SBTree()
     
     tmin = '2013-07-01 12:00:00'
     tmax = '2013-07-05 18:00:00'
     
     t0 = time.time()
-    with open('test.dat', 'r') as f:
+    with open(TDATA, 'r') as f:
         for line in f:
             timestamp, user = line.rsplit(' ', 1)
             d[timestamp] = user
@@ -54,7 +58,7 @@ def compare():
     print 'Time-consuming(dict) : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
     
     t0 = time.time()
-    with open('test.dat', 'r') as f:
+    with open(TDATA, 'r') as f:
         for line in f:
             timestamp, user = line.rsplit(' ', 1)
             t.put(timestamp, user)
@@ -64,7 +68,7 @@ def compare():
     print 'Time-consuming(bst)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
     
     t0 = time.time()
-    with open('test.dat', 'r') as f:
+    with open(TDATA, 'r') as f:
         for line in f:
             timestamp, user = line.rsplit(' ', 1)
             treap.put(timestamp, user)
@@ -74,7 +78,7 @@ def compare():
     print 'Time-consuming(treap): [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
 
     t0 = time.time()
-    with open('test.dat', 'r') as f:
+    with open(TDATA, 'r') as f:
         for line in f:
             timestamp, user = line.rsplit(' ', 1)
             avl.put(timestamp, user)
@@ -82,6 +86,17 @@ def compare():
     result = avl.searchRange(tmin, tmax)
     t2 = time.time()
     print 'Time-consuming(avl)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+
+    t0 = time.time()
+    with open(TDATA, 'r') as f:
+        for line in f:
+            timestamp, user = line.rsplit(' ', 1)
+            sbt.put(timestamp, user)
+    t1 = time.time()
+    result = sbt.searchRange(tmin, tmax)
+    t2 = time.time()
+    print 'Time-consuming(sbt)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+
 
 
 if __name__ == '__main__':
