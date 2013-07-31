@@ -263,7 +263,41 @@ class SBTree(object):
             return self._get(key, currentNode.leftChild)
         else:
             return self._get(key, currentNode.rightChild)
-    
+
+    def delete(self, key):
+        if self.size > 1:
+            self.remove(node, key)
+            self.size -= 1
+        elif self.size == 1 and self.root.key == key:
+            self.root = None
+            self.size -= 1
+        else:
+            raise KeyError('Error, key not in tree')
+
+    def remove(self, currentNode, key):
+        if key == currentNode.key:
+            if currentNode.isLeaf(): #leaf
+                if currentNode == currentNode.parent.leftChild:
+                    currentNode.parent.leftChild = None
+                else:
+                    currentNode.parent.rightChild = None
+                currentNode.parent.size -= 1
+            elif currentNode.hasBothChildren(): #interior
+                self.remove(currentNode.leftChild, key+1)
+            else:
+                if currentNode.hasLeftChild():
+                    currentNode.parent.leftChild = currentNode.leftChild
+                    currentNode.leftChild.parent = currentNode.parent
+                if currentNode.hasRightChild():
+                    currentNode.parent.rightChild = currentNode.rightChild
+                    currentNode.rightChild.parent = currentNode.parent
+                currentNode.parent.size -= 1
+        else:
+            if key < currentNode.key:
+                self.remove(currentNode.leftChild, key)
+            else:
+                self.remove(currentNode.rightChild, key)
+
     def delete(self, key):
         if self.size > 1:
             node = self._get(key, self.root)
@@ -279,16 +313,18 @@ class SBTree(object):
             raise KeyError('Error, key not in tree')
 
     def remove(self,currentNode):
+        """Wrong: May be augment the height!"""
         if currentNode.isLeaf(): #leaf
             if currentNode == currentNode.parent.leftChild:
                 currentNode.parent.leftChild = None
             else:
                 currentNode.parent.rightChild = None
+            currentNode.parent.size -= 1
         elif currentNode.hasBothChildren(): #interior
-            if currentNode.leftChild.priority < currentNode.rightChild.priority:
-                self.rightRotate(currentNode)
-            else:
+            if currentNode.leftChild.size < currentNode.rightChild.size:
                 self.leftRotate(currentNode)
+            else:
+                self.rightRotate(currentNode)
             self.remove(currentNode)
         else:
             if currentNode.hasLeftChild():
@@ -297,7 +333,8 @@ class SBTree(object):
             if currentNode.hasRightChild():
                 currentNode.parent.rightChild = currentNode.rightChild
                 currentNode.rightChild.parent = currentNode.parent
-
+            currentNode.parent.size -= 1
+            
     def select(self, k):
         pass
     
@@ -452,7 +489,8 @@ if __name__ == '__main__':
     r.put(11, 'elenve')
     r.put(12, 'twelve')
     #r.printTree()
-    #r.delete(r.root.key)
+    r.delete(r.root.key)
+    r.put(13, 'thirteen')
     #r.put(5, 'five')
 
     print 'SBT size: ', r.size

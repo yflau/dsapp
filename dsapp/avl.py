@@ -244,7 +244,7 @@ class AVLTree(object):
             else:
                 currentNode.parent.rightChild = None
         elif currentNode.hasBothChildren(): #interior
-            if currentNode.leftChild.priority < currentNode.rightChild.priority:
+            if currentNode.balance > 0:
                 self.rightRotate(currentNode)
             else:
                 self.leftRotate(currentNode)
@@ -404,7 +404,7 @@ if __name__ == '__main__':
     r.put(10, 'ten')
     r.put(11, 'elenve')
     #r.printTree()
-    #r.delete(r.root.key)
+    r.delete(r.root.key)
     #r.put(5, 'five')
 
     print 'AVL size: ', r.size
