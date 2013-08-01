@@ -11,6 +11,11 @@ from treap import Treap
 from avl import AVLTree
 from sbt import SBTree
 
+try:
+    from bintrees import AVLTree, RBTree, FastAVLTree, FastRBTree
+except:
+    pass
+
 from decorators import profile, profileit, print_stats
 
 TDATA = '%s.dat' % __file__
@@ -27,6 +32,8 @@ def generate_data(number = 1000000):
             f.write('    ')
             f.write(''.join(random.sample(string.letters, 6)))
             f.write('\n')
+        f.write('2013-07-01 12:00:00      liuyun\n')
+        f.write('2013-07-05 18:00:00      liufei\n')
 
 
 def compare():
@@ -43,6 +50,13 @@ def compare():
     treap = Treap()
     avl = AVLTree()
     sbt = SBTree()
+    try:
+        pavl = AVLTree()
+        prbt = RBTree()
+        cavl = FastAVLTree()
+        crbt = FastRBTree()
+    except:
+        pass
     
     tmin = '2013-07-01 12:00:00'
     tmax = '2013-07-05 18:00:00'
@@ -96,6 +110,16 @@ def compare():
     result = sbt.searchRange(tmin, tmax)
     t2 = time.time()
     print 'Time-consuming(sbt)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+
+    t0 = time.time()
+    with open(TDATA, 'r') as f:
+        for line in f:
+            timestamp, user = line.rsplit(' ', 1)
+            cavl.insert(timestamp, user)
+    t1 = time.time()
+    result = list(cavl[tmin:tmax])
+    t2 = time.time()
+    print 'Time-consuming(cavl) : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
 
 
 

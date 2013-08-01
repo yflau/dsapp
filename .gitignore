@@ -34,4 +34,4 @@ nosetests.xml
 .project
 .pydevproject
 *.profile
-test.dat
+*.py.dat
