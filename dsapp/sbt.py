@@ -106,6 +106,9 @@ class SBTree(object):
     def __init__(self):
         self.root = None
         self.size = 0
+        self.keyt = None
+        self.payloadt = None
+        self.record = None
 
     def length(self):
         return self.size
@@ -264,9 +267,16 @@ class SBTree(object):
         else:
             return self._get(key, currentNode.rightChild)
 
-    def delete(self, key):
+    def delete(self, key, type = 'faster_and_simpler'):
+        """Delete method of SBT.
+        
+        type: 
+          standard : standard delete
+          faster_and_simpler : faster and simpler delete, default
+        """
         if self.size > 1:
-            self.remove(node, key)
+            remove = getattr(self, '%s_remove' % type, 'faster_and_simpler_remove')
+            remove(self.root, key)
             self.size -= 1
         elif self.size == 1 and self.root.key == key:
             self.root = None
@@ -274,16 +284,14 @@ class SBTree(object):
         else:
             raise KeyError('Error, key not in tree')
 
-    def remove(self, currentNode, key):
-        if key == currentNode.key:
+    def standard_remove(self, currentNode, key):
+        if currentNode.size <= 2:
+            self.record = currentNode
             if currentNode.isLeaf(): #leaf
                 if currentNode == currentNode.parent.leftChild:
                     currentNode.parent.leftChild = None
                 else:
                     currentNode.parent.rightChild = None
-                currentNode.parent.size -= 1
-            elif currentNode.hasBothChildren(): #interior
-                self.remove(currentNode.leftChild, key+1)
             else:
                 if currentNode.hasLeftChild():
                     currentNode.parent.leftChild = currentNode.leftChild
@@ -291,55 +299,69 @@ class SBTree(object):
                 if currentNode.hasRightChild():
                     currentNode.parent.rightChild = currentNode.rightChild
                     currentNode.rightChild.parent = currentNode.parent
-                currentNode.parent.size -= 1
+            return
+        currentNode.size -= 1
+        if key == currentNode.key:
+            self.standard_remove(currentNode.leftChild, key+1)
+            currentNode.key = self.record.key
+            currentNode.payload = self.record.payload
+            self.maintain(currentNode, True)
         else:
             if key < currentNode.key:
-                self.remove(currentNode.leftChild, key)
+                self.standard_remove(currentNode.leftChild, key)
             else:
-                self.remove(currentNode.rightChild, key)
+                self.standard_remove(currentNode.rightChild, key)
+            self.maintain(currentNode, key < currentNode.key)
 
-    def delete(self, key):
-        if self.size > 1:
-            node = self._get(key, self.root)
-            if node:
-                self.remove(node)
-                self.size -= 1
+    def faster_and_simpler_remove(self, currentNode, key):
+        currentNode.size -= 1
+        self.record = currentNode
+        k = currentNode.key
+        if key == k or (key < k and not currentNode.hasLeftChild()) or (key > k and not currentNode.hasRightChild()):
+            if currentNode.isLeaf(): #leaf
+                if currentNode == currentNode.parent.leftChild:
+                    currentNode.parent.leftChild = None
+                else:
+                    currentNode.parent.rightChild = None
+            elif currentNode.hasBothChildren(): #interior
+                self.faster_and_simpler_remove(currentNode.leftChild, key+1)
+                currentNode.key = self.record.key
+                currentNode.payload = self.record.payload
             else:
-                raise KeyError('Error, key not in tree')
-        elif self.size == 1 and self.root.key == key:
-            self.root = None
-            self.size -= 1
+                if currentNode.hasLeftChild():
+                    currentNode.parent.leftChild = currentNode.leftChild
+                    currentNode.leftChild.parent = currentNode.parent
+                if currentNode.hasRightChild():
+                    currentNode.parent.rightChild = currentNode.rightChild
+                    currentNode.rightChild.parent = currentNode.parent
         else:
-            raise KeyError('Error, key not in tree')
-
-    def remove(self,currentNode):
-        """Wrong: May be augment the height!"""
-        if currentNode.isLeaf(): #leaf
-            if currentNode == currentNode.parent.leftChild:
-                currentNode.parent.leftChild = None
+            if key < k:
+                self.faster_and_simpler_remove(currentNode.leftChild, key)
             else:
-                currentNode.parent.rightChild = None
-            currentNode.parent.size -= 1
-        elif currentNode.hasBothChildren(): #interior
-            if currentNode.leftChild.size < currentNode.rightChild.size:
-                self.leftRotate(currentNode)
-            else:
-                self.rightRotate(currentNode)
-            self.remove(currentNode)
-        else:
-            if currentNode.hasLeftChild():
-                currentNode.parent.leftChild = currentNode.leftChild
-                currentNode.leftChild.parent = currentNode.parent
-            if currentNode.hasRightChild():
-                currentNode.parent.rightChild = currentNode.rightChild
-                currentNode.rightChild.parent = currentNode.parent
-            currentNode.parent.size -= 1
+                self.faster_and_simpler_remove(currentNode.rightChild, key)
             
-    def select(self, k):
-        pass
+    def select(self, t, k):
+        if not t or k > t.size:
+            return None
+        r = (0 if not t.hasLeftChild() else t.leftChild.size)+1
+        if k == r:
+            return t
+        elif k < r:
+            self.select(t.leftChild, k)
+        else:
+            self.select(t.rightChild, k-r)
     
-    def rank(self, v):
-        pass
+    def rank(self, t, v):
+        if not t:
+            return 0
+        if v == t.key:
+            return (0 if not t.hasLeftChild() else t.leftChild.size) + 1
+        elif v < t.key:
+            return self.rank(t.leftChild, v)
+        else:
+            r = self.rank(t.rightChild, v)
+            tmp = (0 if not t.hasLeftChild() else t.leftChild.size) + 1
+            return 0 if r == 0 else (r + tmp + 1)
 
     def searchRange(self, kmin, kmax):
         result = []
@@ -488,10 +510,14 @@ if __name__ == '__main__':
     r.put(10, 'ten')
     r.put(11, 'elenve')
     r.put(12, 'twelve')
-    #r.printTree()
-    r.delete(r.root.key)
+    r.pprint()
+    #r.delete(r.root.key)
+    #print r.root.key
+    #print r.root.payload
+    r.delete(10, 'standard')
     r.put(13, 'thirteen')
-    #r.put(5, 'five')
+    print 'select: ', r.select(r.root, 6)
+    print 'rank: ', r.rank(r.root, 1)
 
     print 'SBT size: ', r.size
     r.pprint()

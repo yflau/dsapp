@@ -36,7 +36,7 @@ def generate_data(number = 1000000):
         f.write('2013-07-05 18:00:00      liufei\n')
 
 
-def compare():
+def compare(keys = ['dict', 'cavl', 'crbt']):
     """
     1000000 items:
     
@@ -45,8 +45,8 @@ def compare():
     Time-consuming(treap): [setup]68.8440 [search]0.0780 [result]33346
     Time-consuming(avl)  : [setup]55.0620 [search]0.0940 [result]33346
     """
-    d = {}
-    t = BinarySearchTree()
+    dic = {}
+    bst = BinarySearchTree()
     treap = Treap()
     avl = AVLTree()
     sbt = SBTree()
@@ -60,57 +60,63 @@ def compare():
     
     tmin = '2013-07-01 12:00:00'
     tmax = '2013-07-05 18:00:00'
-    
+
+    # dict
     t0 = time.time()
     with open(TDATA, 'r') as f:
         for line in f:
             timestamp, user = line.rsplit(' ', 1)
-            d[timestamp] = user
+            dic[timestamp] = user
     t1 = time.time()
-    result = [e for e in d if tmin < e < tmax ]
+    result = [e for e in dic if tmin < e < tmax ]
     t2 = time.time()
     print 'Time-consuming(dict) : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
     
-    t0 = time.time()
-    with open(TDATA, 'r') as f:
-        for line in f:
-            timestamp, user = line.rsplit(' ', 1)
-            t.put(timestamp, user)
-    t1 = time.time()
-    result = t.searchRange(tmin, tmax)
-    t2 = time.time()
-    print 'Time-consuming(bst)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
-    
-    t0 = time.time()
-    with open(TDATA, 'r') as f:
-        for line in f:
-            timestamp, user = line.rsplit(' ', 1)
-            treap.put(timestamp, user)
-    t1 = time.time()
-    result = treap.searchRange(tmin, tmax)
-    t2 = time.time()
-    print 'Time-consuming(treap): [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+#    # bst
+#    t0 = time.time()
+#    with open(TDATA, 'r') as f:
+#        for line in f:
+#            timestamp, user = line.rsplit(' ', 1)
+#            bst.put(timestamp, user)
+#    t1 = time.time()
+#    result = bst.searchRange(tmin, tmax)
+#    t2 = time.time()
+#    print 'Time-consuming(bst)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+#    
+#    # treap
+#    t0 = time.time()
+#    with open(TDATA, 'r') as f:
+#        for line in f:
+#            timestamp, user = line.rsplit(' ', 1)
+#            treap.put(timestamp, user)
+#    t1 = time.time()
+#    result = treap.searchRange(tmin, tmax)
+#    t2 = time.time()
+#    print 'Time-consuming(treap): [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+#
+#    # avl
+#    t0 = time.time()
+#    with open(TDATA, 'r') as f:
+#        for line in f:
+#            timestamp, user = line.rsplit(' ', 1)
+#            avl.put(timestamp, user)
+#    t1 = time.time()
+#    result = avl.searchRange(tmin, tmax)
+#    t2 = time.time()
+#    print 'Time-consuming(avl)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+#
+#    # sbt
+#    t0 = time.time()
+#    with open(TDATA, 'r') as f:
+#        for line in f:
+#            timestamp, user = line.rsplit(' ', 1)
+#            sbt.put(timestamp, user)
+#    t1 = time.time()
+#    result = sbt.searchRange(tmin, tmax)
+#    t2 = time.time()
+#    print 'Time-consuming(sbt)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
 
-    t0 = time.time()
-    with open(TDATA, 'r') as f:
-        for line in f:
-            timestamp, user = line.rsplit(' ', 1)
-            avl.put(timestamp, user)
-    t1 = time.time()
-    result = avl.searchRange(tmin, tmax)
-    t2 = time.time()
-    print 'Time-consuming(avl)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
-
-    t0 = time.time()
-    with open(TDATA, 'r') as f:
-        for line in f:
-            timestamp, user = line.rsplit(' ', 1)
-            sbt.put(timestamp, user)
-    t1 = time.time()
-    result = sbt.searchRange(tmin, tmax)
-    t2 = time.time()
-    print 'Time-consuming(sbt)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
-
+    # cavl
     t0 = time.time()
     with open(TDATA, 'r') as f:
         for line in f:
@@ -121,6 +127,16 @@ def compare():
     t2 = time.time()
     print 'Time-consuming(cavl) : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
 
+    # crbt
+    t0 = time.time()
+    with open(TDATA, 'r') as f:
+        for line in f:
+            timestamp, user = line.rsplit(' ', 1)
+            crbt.insert(timestamp, user)
+    t1 = time.time()
+    result = list(crbt[tmin:tmax])
+    t2 = time.time()
+    print 'Time-consuming(crbt) : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
 
 
 if __name__ == '__main__':
