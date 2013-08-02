@@ -105,38 +105,38 @@ def compare(keys = ['dict', 'cavl', 'crbt']):
 #    t2 = time.time()
 #    print 'Time-consuming(avl)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
 #
-#    # sbt
+    # sbt
+    t0 = time.time()
+    with open(TDATA, 'r') as f:
+        for line in f:
+            timestamp, user = line.rsplit(' ', 1)
+            sbt.put(timestamp, user)
+    t1 = time.time()
+    result = sbt.searchRange(tmin, tmax)
+    t2 = time.time()
+    print 'Time-consuming(sbt)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+
+    # cavl
 #    t0 = time.time()
 #    with open(TDATA, 'r') as f:
 #        for line in f:
 #            timestamp, user = line.rsplit(' ', 1)
-#            sbt.put(timestamp, user)
+#            cavl.insert(timestamp, user)
 #    t1 = time.time()
-#    result = sbt.searchRange(tmin, tmax)
+#    result = list(cavl[tmin:tmax])
 #    t2 = time.time()
-#    print 'Time-consuming(sbt)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
-
-    # cavl
-    t0 = time.time()
-    with open(TDATA, 'r') as f:
-        for line in f:
-            timestamp, user = line.rsplit(' ', 1)
-            cavl.insert(timestamp, user)
-    t1 = time.time()
-    result = list(cavl[tmin:tmax])
-    t2 = time.time()
-    print 'Time-consuming(cavl) : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
-
-    # crbt
-    t0 = time.time()
-    with open(TDATA, 'r') as f:
-        for line in f:
-            timestamp, user = line.rsplit(' ', 1)
-            crbt.insert(timestamp, user)
-    t1 = time.time()
-    result = list(crbt[tmin:tmax])
-    t2 = time.time()
-    print 'Time-consuming(crbt) : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+#    print 'Time-consuming(cavl) : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+#
+#    # crbt
+#    t0 = time.time()
+#    with open(TDATA, 'r') as f:
+#        for line in f:
+#            timestamp, user = line.rsplit(' ', 1)
+#            crbt.insert(timestamp, user)
+#    t1 = time.time()
+#    result = list(crbt[tmin:tmax])
+#    t2 = time.time()
+#    print 'Time-consuming(crbt) : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
 
 
 if __name__ == '__main__':
