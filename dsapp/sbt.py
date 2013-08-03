@@ -329,9 +329,9 @@ class SBTree(object):
                     t.right.parent = t.parent
         else:
             if key < k:
-                self.faster_and_simpler_remove(t.left, key)
+                self._faster_and_simpler_remove(t.left, key)
             else:
-                self.faster_and_simpler_remove(t.right, key)
+                self._faster_and_simpler_remove(t.right, key)
             
     def select(self, t, k):
         if not t or k > t.size:
