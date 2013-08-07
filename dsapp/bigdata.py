@@ -3,6 +3,7 @@
 
 import random
 import heapq
+import string
 
 ################################################################################
 
@@ -22,6 +23,14 @@ def generate_vast_IP(total = 10000000):
             c = random.randint(0, 256)
             d = random.randint(0, 256)
             f.write('202.%s.%s.%s\n' % (b, c, d))
+
+def generate_words(total = 1000000):
+    with open(TDATA, 'w') as f:
+        letters = string.letters[:26]
+        for i in xrange(total):
+            ri = random.randint(2, 12)
+            f.write(''.join(random.sample(letters, ri)))
+            f.write('\n')
 
 ################################################################################
 
@@ -114,19 +123,45 @@ def find_top_k(k = 10):
 
 ################################################################################
 
+from trie import Trie
 
+def find_top_k_with_trie(k = 10):
+    result = []
+    t = Trie()
+    # trie
+    with open(TDATA) as f:
+        for line in f:
+            t.insert(line.strip())
+    
+    for n in t.ipreorder(t.root):
+        if len(result) < k:
+            heapq.heappush(result, n)
+        else:
+            heapq.heappushpop(result, n)
+            
+    return result
 
 ################################################################################
 
+def test(*args, **kw):
+    pass
+
 if __name__ == '__main__':
     import time
-    #t0 = time.time()
-    #generate_vast_IP()
-    #print 'time consuming: ', time.time() - t0
+    
+#    t0 = time.time()
+#    generate_words(100000)
+#    print 'time consuming: ', time.time() - t0
+
+#    t0 = time.time()
+#    #res = find_max()
+#    res = find_top_k()
+#    print 'time consuming: ', time.time() - t0
+#    for i in range(10):
+#        print heapq.heappop(res)
+
     t0 = time.time()
-    #res = find_max()
-    res = find_top_k()
+    res = find_top_k_with_trie()
     print 'time consuming: ', time.time() - t0
     for i in range(10):
         print heapq.heappop(res)
-

@@ -12,6 +12,14 @@ class Node(object):
         self.count = 0
         self.children = {}
 
+    def __iter__(self):
+        if self.word:
+            yield self.word
+        if self.children:
+            for k, v in self.children.iteritems():
+                if v.word:
+                    yield v.word
+
 class Trie(object):
     # auto inc id
     id = 0
@@ -90,6 +98,12 @@ class Trie(object):
             results.extend(self._preorder(v))
         return results
 
+    def ipreorder(self, node):
+        if node.word:
+            yield (node.count, node.word)
+        for k, v in node.children.iteritems():
+            for e in self.ipreorder(v):
+                yield e
 
 ################################################################################
 
@@ -105,8 +119,17 @@ def test():
     print t.auto_complete('to')
 
 
+
 if __name__ == '__main__':
-    test()
+    #test()
+    t = Trie()
+    t.insert('abcd')
+    t.insert('ab')
+    t.insert('best')
+    t.insert('better')
+    t.insert('best')
+    for e in t.ipreorder(t.root):
+        print e
 
 
 
