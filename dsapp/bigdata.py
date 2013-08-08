@@ -132,7 +132,7 @@ def find_top_k(k = 10):
                 fd[fi] = open('tmp/%s.dat'%fi, 'w+')
             fd[fi].write(line)
 
-    # hash+sort
+    # heap+sort
     for fi in fd:
         f = fd[fi]
         f.flush()
@@ -161,9 +161,14 @@ def test_find_top_k():
 ################################################################################
 
 from trie import Trie
+import datrie
+import pytrie
+
 
 def find_top_k_with_trie(k = 10):
     """
+    Too slow and large memory consuming.
+    
     time consuming:  147.656000137
     (164, 'mh')
     (164, 'sq')
@@ -183,6 +188,7 @@ def find_top_k_with_trie(k = 10):
         for line in f:
             t.insert(line.strip())
     
+    # heapq
     for n in t.ipreorder(t.root):
         if len(result) < k:
             heapq.heappush(result, n)
@@ -198,6 +204,89 @@ def test_find_top_k_with_trie():
     for i in range(10):
         print heapq.heappop(res)
 
+def find_top_k_with_datrie(k = 10):
+    """
+    Too slow for inserts.
+        
+    time consuming:  896.575999975
+    (164, u'mh')
+    (164, u'sq')
+    (165, u'bi')
+    (165, u'mo')
+    (167, u'im')
+    (168, u'ux')
+    (169, u'br')
+    (169, u'gj')
+    (170, u'ij')
+    (171, u'qd')
+    """
+    result = []
+    t = datrie.Trie(string.ascii_lowercase)
+    with open(TDATA) as f:
+        for line in f:
+            key = unicode(line.strip())
+            t[key] = t.setdefault(key, 0) + 1
+
+    # heapq
+    state = datrie.State(t)
+    state.walk(u'A')
+    it = datrie.Iterator(state)
+    while it.next():
+        if len(result) < k:
+            heapq.heappush(result, (it.data(), it.key()))
+        else:
+            heapq.heappushpop(result, (it.data(), it.key()))
+            
+    return result
+
+def test_find_top_k_with_datrie():
+    t0 = time.time()
+    res = find_top_k_with_datrie()
+    print 'time consuming: ', time.time() - t0
+    for i in range(10):
+        print heapq.heappop(res)
+
+
+def find_top_k_with_pytrie(k = 10):
+    """
+    Too slow for inserts.
+        
+    time consuming:  57.3159999847
+    (164, 'mh')
+    (164, 'sq')
+    (165, 'bi')
+    (165, 'mo')
+    (167, 'im')
+    (168, 'ux')
+    (169, 'br')
+    (169, 'gj')
+    (170, 'ij')
+    (171, 'qd')
+    """
+    result = []
+    t = pytrie.SortedStringTrie()
+    with open(TDATA) as f:
+        for line in f:
+            key = line.strip()
+            t[key] = t.setdefault(key, 0) + 1
+
+    # heapq
+    for e in t.iteritems():
+        if len(result) < k:
+            heapq.heappush(result, e[::-1])
+        else:
+            heapq.heappushpop(result, e[::-1])
+            
+    return result
+
+def test_find_top_k_with_pytrie():
+    t0 = time.time()
+    res = find_top_k_with_pytrie()
+    print 'time consuming: ', time.time() - t0
+    for i in range(10):
+        print heapq.heappop(res)
+
+
 ################################################################################
 
 def test(*args, **kw):
@@ -205,6 +294,8 @@ def test(*args, **kw):
 
 if __name__ == '__main__':
     #test_generate()
-    test_find_max()
+    #test_find_max()
     #test_find_top_k()
     #test_find_top_k_with_trie()
+    #test_find_top_k_with_datrie()
+    test_find_top_k_with_pytrie()
