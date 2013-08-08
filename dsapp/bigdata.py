@@ -4,6 +4,9 @@
 import random
 import heapq
 import string
+import time
+
+from pprint import pprint
 
 ################################################################################
 
@@ -32,21 +35,29 @@ def generate_words(total = 1000000):
             f.write(''.join(random.sample(letters, ri)))
             f.write('\n')
 
+def test_generate():
+    t0 = time.time()
+    generate_words(1000000)
+    print 'time consuming: ', time.time() - t0
+
 ################################################################################
 
 def find_max(tempdirs = []):
     """Method: divide-and-conquer + hash stat + sort
     
-    ('202.43.158.225\n', 14)
-    ('202.13.186.165\n', 14)
-    ('202.13.68.3\n', 14)
-    ('202.32.247.249\n', 14)
-    ('202.27.42.169\n', 14)
-    ('202.6.99.167\n', 15)
-    ('202.39.209.255\n', 15)
-    ('202.45.250.204\n', 15)
-    ('202.21.31.17\n', 15)
-    ('202.34.112.151\n', 15)
+    con: can not used to find top k, but only find max.
+    
+    time consuming:  3.95299983025
+    [('my', 163),
+     ('sq', 164),
+     ('mh', 164),
+     ('mo', 165),
+     ('im', 167),
+     ('ux', 168),
+     ('br', 169),
+     ('gj', 169),
+     ('ij', 170),
+     ('qd', 171)]
     """
     fd = {}
     result = []
@@ -67,12 +78,18 @@ def find_max(tempdirs = []):
         md = {}
         for line in f:
             ip = line.strip()
-            md[line] = md.setdefault(line, 0) + 1
+            md[ip] = md.setdefault(ip, 0) + 1
         tmp = sorted(md.iteritems(), key=lambda d: d[1])
         result.append(tmp[-1])
         f.close()
         
     return sorted(result, key=lambda d: d[1])
+
+def test_find_max():
+    t0 = time.time()
+    res = find_max()
+    print 'time consuming: ', time.time() - t0
+    pprint(res[-10:])
 
 ################################################################################
 
@@ -91,6 +108,18 @@ def find_top_k(k = 10):
     (15, '202.39.209.255')
     (15, '202.45.250.204')
     (15, '202.6.99.167')
+    
+    time consuming:  3.8599998951
+    (164, 'mh')
+    (164, 'sq')
+    (165, 'bi')
+    (165, 'mo')
+    (167, 'im')
+    (168, 'ux')
+    (169, 'br')
+    (169, 'gj')
+    (170, 'ij')
+    (171, 'qd')
     """
     fd = {}
     result = []
@@ -121,11 +150,32 @@ def find_top_k(k = 10):
         
     return result
 
+def test_find_top_k():
+    t0 = time.time()
+    #res = find_max()
+    res = find_top_k()
+    print 'time consuming: ', time.time() - t0
+    for i in range(10):
+        print heapq.heappop(res)
+
 ################################################################################
 
 from trie import Trie
 
 def find_top_k_with_trie(k = 10):
+    """
+    time consuming:  147.656000137
+    (164, 'mh')
+    (164, 'sq')
+    (165, 'bi')
+    (165, 'mo')
+    (167, 'im')
+    (168, 'ux')
+    (169, 'br')
+    (169, 'gj')
+    (170, 'ij')
+    (171, 'qd')
+    """
     result = []
     t = Trie()
     # trie
@@ -141,27 +191,20 @@ def find_top_k_with_trie(k = 10):
             
     return result
 
+def test_find_top_k_with_trie():
+    t0 = time.time()
+    res = find_top_k_with_trie()
+    print 'time consuming: ', time.time() - t0
+    for i in range(10):
+        print heapq.heappop(res)
+
 ################################################################################
 
 def test(*args, **kw):
     pass
 
 if __name__ == '__main__':
-    import time
-    
-#    t0 = time.time()
-#    generate_words(100000)
-#    print 'time consuming: ', time.time() - t0
-
-#    t0 = time.time()
-#    #res = find_max()
-#    res = find_top_k()
-#    print 'time consuming: ', time.time() - t0
-#    for i in range(10):
-#        print heapq.heappop(res)
-
-    t0 = time.time()
-    res = find_top_k_with_trie()
-    print 'time consuming: ', time.time() - t0
-    for i in range(10):
-        print heapq.heappop(res)
+    #test_generate()
+    test_find_max()
+    #test_find_top_k()
+    #test_find_top_k_with_trie()

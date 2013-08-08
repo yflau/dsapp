@@ -12,13 +12,8 @@ class Node(object):
         self.count = 0
         self.children = {}
 
-    def __iter__(self):
-        if self.word:
-            yield self.word
-        if self.children:
-            for k, v in self.children.iteritems():
-                if v.word:
-                    yield v.word
+    def __str__(self):
+        return '%s(%s, %s)' % (self.id, self.word, self.count)
 
 class Trie(object):
     # auto inc id
@@ -105,6 +100,13 @@ class Trie(object):
             for e in self.ipreorder(v):
                 yield e
 
+    def pprint(self, node):
+        while node.children:
+            print node
+            for k, v in node.children.iteritems():
+                print v
+                node = v
+
 ################################################################################
 
 from memory_profiler import profile
@@ -130,6 +132,7 @@ if __name__ == '__main__':
     t.insert('best')
     for e in t.ipreorder(t.root):
         print e
+    t.pprint(t.root)
 
 
 
