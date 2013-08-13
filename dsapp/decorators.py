@@ -72,6 +72,7 @@ Usage:
 
 """
 
+################################ Deprecated ####################################
 
 import warnings
 import functools
@@ -103,6 +104,43 @@ class SomeClass:
     def some_old_method(self, x,y):
         return x + y
 
+################################################################################
+
+import time
+
+def timethis(func):
+    def wrap(*args, **kwargs):
+        t0 = time.time()
+        result = func(*args, **kwargs)
+        t1 = time.time()
+        #logging.info(m1.size - m0.size)
+        print 'time consuming: %s ' % str(t1 - t0)
+        return result
+    
+    return wrap
+
+try:
+    from guppy import hpy
+except:
+    pass
+
+def memorythis(func):
+    def wrap(*args, **kwargs):
+        hp = hpy()
+        m0 = hp.heap()
+        result = func(*args, **kwargs)
+        m1 = hp.heap()
+        #logging.info(m1.size - m0.size)
+        print m1.size - m0.size
+        return result
+
+    return wrap
+
+
+def profile(func):
+    pass
+
+################################################################################
 
 import timeit
 import logging

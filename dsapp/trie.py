@@ -123,16 +123,16 @@ def test():
 
 
 if __name__ == '__main__':
-    #test()
-    t = Trie()
-    t.insert('abcd')
-    t.insert('ab')
-    t.insert('best')
-    t.insert('better')
-    t.insert('best')
-    for e in t.ipreorder(t.root):
-        print e
-    t.pprint(t.root)
+    test()
+    #t = Trie()
+    #t.insert('abcd')
+    #t.insert('ab')
+    #t.insert('best')
+    #t.insert('better')
+    #t.insert('best')
+    #for e in t.ipreorder(t.root):
+    #    print e
+    #t.pprint(t.root)
 
 
 
