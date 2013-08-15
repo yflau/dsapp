@@ -8,6 +8,8 @@ import time
 
 from pprint import pprint
 
+from decorators import timethis
+
 ################################################################################
 
 TDATA = '%s.dat' % __file__
@@ -163,7 +165,7 @@ def test_find_top_k():
 from trie import Trie
 import datrie
 import pytrie
-
+import hat_trie
 
 def find_top_k_with_trie(k = 10):
     """
@@ -251,17 +253,18 @@ def find_top_k_with_pytrie(k = 10):
     """
     Too slow for inserts.
         
-    time consuming:  57.3159999847
-    (164, 'mh')
-    (164, 'sq')
-    (165, 'bi')
-    (165, 'mo')
-    (167, 'im')
-    (168, 'ux')
-    (169, 'br')
-    (169, 'gj')
-    (170, 'ij')
-    (171, 'qd')
+    time consuming:  143.315999985
+    memory consuming: 720 MB
+    (165, 'ts')
+    (165, 'um')
+    (165, 'yk')
+    (165, 'zl')
+    (166, 'ky')
+    (166, 'sg')
+    (167, 'nh')
+    (169, 'kp')
+    (171, 'eo')
+    (172, 'dq')
     """
     result = []
     t = pytrie.SortedStringTrie()
@@ -286,6 +289,44 @@ def test_find_top_k_with_pytrie():
     for i in range(10):
         print heapq.heappop(res)
 
+@timethis
+def find_top_k_with_hat_trie(k = 10):
+    """
+    Profile result:
+    
+      time consuming: 4.34599995613
+      memory consuming: 23 MB
+        
+    [(165, u'ts'),
+     (165, u'yk'),
+     (165, u'um'),
+     (166, u'ky'),
+     (165, u'zl'),
+     (166, u'sg'),
+     (167, u'nh'),
+     (171, u'eo'),
+     (172, u'dq'),
+     (169, u'kp')]
+    """
+    result = []
+    t = hat_trie.Trie()
+    with open(TDATA) as f:
+        for line in f:
+            key = unicode(line.strip())
+            if key in t:
+                t[key] = t[key] + 1
+            else:
+                t[key] = 1
+
+    # heapq
+    for key in t.iterkeys():
+        key = unicode(key)
+        if len(result) < k:
+            heapq.heappush(result, (t[key], key))
+        else:
+            heapq.heappushpop(result, (t[key], key))
+    
+    return result
 
 ################################################################################
 
@@ -299,3 +340,4 @@ if __name__ == '__main__':
     #test_find_top_k_with_trie()
     #test_find_top_k_with_datrie()
     test_find_top_k_with_pytrie()
+    #pprint(find_top_k_with_hat_trie())
