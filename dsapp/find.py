@@ -5,27 +5,32 @@ import time
 import random
 import string
 from datetime import datetime
+from os.path import join, exists
+
+import rbtree
+from bintrees import AVLTree, RBTree, FastAVLTree, FastRBTree
 
 from bst import BinarySearchTree
 from treap import Treap
 from avl import AVLTree
 from sbt import SBTree
 
-try:
-    from bintrees import AVLTree, RBTree, FastAVLTree, FastRBTree
-except:
-    pass
-
-from decorators import profile, profileit, print_stats
+from decorators import timethis
+from settings import DATA_PATH
 
 TDATA = '%s.dat' % __file__
+def get_data_file(filename = TDATA):
+    return filename if exists(filename) else join(DATA_PATH, filename)
+TDATA = get_data_file()
 
-@profileit
-def generate_data(number = 1000000):
+TMIN = '2013-07-01 12:00:00'
+TMAX = '2013-07-05 18:00:00'
+
+def generate_data(filename = TDATA, number = 1000000):
     """Format: 2013-07-14 20:31:45 liuyun"""
     startdate = int(time.mktime(datetime(2013, 5, 1).timetuple()))
     enddate = int(time.mktime(datetime(2013, 8, 31).timetuple()))
-    with open(TDATA, 'w') as f:
+    with open(filename, 'w') as f:
         for i in xrange(number):
             timestamp = random.randint(startdate, enddate)
             f.write(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp)))
@@ -35,111 +40,191 @@ def generate_data(number = 1000000):
         f.write('2013-07-01 12:00:00      liuyun\n')
         f.write('2013-07-05 18:00:00      liufei\n')
 
-
-def compare(keys = ['dict', 'cavl', 'crbt']):
+def find_range_with_dict(filename = TDATA, tmin = TMIN, tmax = TMAX):
     """
-    1000000 items:
+    Profile result:
     
-    Time-consuming(dict) : [setup]3.3130  [search]0.3120 [result]33346
-    Time-consuming(bst)  : [setup]76.7970 [search]0.1250 [result]33346
-    Time-consuming(treap): [setup]68.8440 [search]0.0780 [result]33346
-    Time-consuming(avl)  : [setup]55.0620 [search]0.0940 [result]33346
+      Memory-consuming: 107 MB
+      Time-consuming  : [setup]1.6410 [search]0.3750 [result]32976
     """
     dic = {}
-    bst = BinarySearchTree()
-    treap = Treap()
-    avl = AVLTree()
-    sbt = SBTree()
-    try:
-        pavl = AVLTree()
-        prbt = RBTree()
-        cavl = FastAVLTree()
-        crbt = FastRBTree()
-    except:
-        pass
     
-    tmin = '2013-07-01 12:00:00'
-    tmax = '2013-07-05 18:00:00'
-
-    # dict
     t0 = time.time()
-    with open(TDATA, 'r') as f:
+    with open(filename, 'r') as f:
         for line in f:
             timestamp, user = line.rsplit(' ', 1)
             dic[timestamp] = user
+            
     t1 = time.time()
     result = [e for e in dic if tmin < e < tmax ]
     t2 = time.time()
-    print 'Time-consuming(dict) : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+    print 'Time-consuming  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+
+def find_range_with_rbtree(filename = TDATA, tmin = TMIN, tmax = TMAX):
+    """
+    Profile result:
     
-#    # bst
-#    t0 = time.time()
-#    with open(TDATA, 'r') as f:
-#        for line in f:
-#            timestamp, user = line.rsplit(' ', 1)
-#            bst.put(timestamp, user)
-#    t1 = time.time()
-#    result = bst.searchRange(tmin, tmax)
-#    t2 = time.time()
-#    print 'Time-consuming(bst)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
-#    
-#    # treap
-#    t0 = time.time()
-#    with open(TDATA, 'r') as f:
-#        for line in f:
-#            timestamp, user = line.rsplit(' ', 1)
-#            treap.put(timestamp, user)
-#    t1 = time.time()
-#    result = treap.searchRange(tmin, tmax)
-#    t2 = time.time()
-#    print 'Time-consuming(treap): [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
-#
-#    # avl
-#    t0 = time.time()
-#    with open(TDATA, 'r') as f:
-#        for line in f:
-#            timestamp, user = line.rsplit(' ', 1)
-#            avl.put(timestamp, user)
-#    t1 = time.time()
-#    result = avl.searchRange(tmin, tmax)
-#    t2 = time.time()
-#    print 'Time-consuming(avl)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
-#
-    # sbt
+      Memory-consuming: 113 MB
+      Time-consuming(iter)  : [setup]4.4690 [search]0.8280 [result]32976
+      Time-consuming(slice) : [setup]4.6090 [search]0.0780 [result]32976
+    """
+    t = rbtree.rbtree()
+    
     t0 = time.time()
-    with open(TDATA, 'r') as f:
+    with open(filename, 'r') as f:
         for line in f:
             timestamp, user = line.rsplit(' ', 1)
-            sbt.put(timestamp, user)
+            t[timestamp] = user
+            
     t1 = time.time()
-    result = sbt.searchRange(tmin, tmax)
+    #result = [e for e in rbt if tmin < e < tmax ]
+    result = list(t[tmin:tmax])
     t2 = time.time()
-    print 'Time-consuming(sbt)  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+    print 'Time-consuming  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
 
-    # cavl
-#    t0 = time.time()
-#    with open(TDATA, 'r') as f:
-#        for line in f:
-#            timestamp, user = line.rsplit(' ', 1)
-#            cavl.insert(timestamp, user)
-#    t1 = time.time()
-#    result = list(cavl[tmin:tmax])
-#    t2 = time.time()
-#    print 'Time-consuming(cavl) : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
-#
-#    # crbt
-#    t0 = time.time()
-#    with open(TDATA, 'r') as f:
-#        for line in f:
-#            timestamp, user = line.rsplit(' ', 1)
-#            crbt.insert(timestamp, user)
-#    t1 = time.time()
-#    result = list(crbt[tmin:tmax])
-#    t2 = time.time()
-#    print 'Time-consuming(crbt) : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+def find_range_with_FastAVLTree(filename = TDATA, tmin = TMIN, tmax = TMAX):
+    """
+    Profile result:
+    
+      Memory-consuming: 113 MB
+      Time-consuming(TreeSlice) : [setup]8.5320 [search]0.5930 [result]32976
+      Time-consuming(succ_key)  : [setup]7.5160 [search]0.2030 [result]32976
+    """
+    result = []
+    t = FastAVLTree()
+    
+    t0 = time.time()
+    with open(filename, 'r') as f:
+        for line in f:
+            timestamp, user = line.rsplit(' ', 1)
+            t.insert(timestamp, user)
+            
+    t1 = time.time()
+    #result = list(t[tmin:tmax])
+    ck = t.ceiling_key(tmin)
+    while ck < tmax:
+        result.append(ck)
+        ck = t.succ_key(ck)
+    t2 = time.time()
+    print 'Time-consuming  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
 
+def find_range_with_FastRBTree(filename = TDATA, tmin = TMIN, tmax = TMAX):
+    """
+    Profile result:
+    
+      Memory-consuming: 113 MB
+      Time-consuming(TreeSlice) : [setup]7.9690 [search]0.5150 [result]32976
+      Time-consuming(key_slice) : [setup]7.7180 [search]0.4690 [result]32976
+      Time-consuming(succ_key)  : [setup]7.6410 [search]0.1870 [result]32976
+    """
+    result = []
+    t = FastRBTree()
+    
+    t0 = time.time()
+    with open(filename, 'r') as f:
+        for line in f:
+            timestamp, user = line.rsplit(' ', 1)
+            t.insert(timestamp, user)
+            
+    t1 = time.time()
+    #result = list(t[tmin:tmax])             # TreeSlice
+    #result = list(t.key_slice(tmin, tmax))  # key_slice
+    ck = t.ceiling_key(tmin)
+    while ck < tmax:
+        result.append(ck)
+        ck = t.succ_key(ck)
+    t2 = time.time()
+    print 'Time-consuming  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+
+def find_range_with_bst(filename = TDATA, tmin = TMIN, tmax = TMAX):
+    """
+    Profile result:
+    
+      Memory-consuming: 290 MB
+      Time-consuming  : [setup]90.1880 [search]0.1400 [result]32976
+    """
+    t = BinarySearchTree()
+    
+    t0 = time.time()
+    with open(filename, 'r') as f:
+        for line in f:
+            timestamp, user = line.rsplit(' ', 1)
+            t.put(timestamp, user)
+            
+    t1 = time.time()
+    result = t.searchRange(tmin, tmax)
+    t2 = time.time()
+    print 'Time-consuming  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+
+def find_range_with_treap(filename = TDATA, tmin = TMIN, tmax = TMAX):
+    """
+    Profile result:
+    
+      Memory-consuming: 670 MB
+      Time-consuming  : [setup]91.4850 [search]0.0940 [result]32976
+    """
+    t = Treap()
+    
+    t0 = time.time()
+    with open(filename, 'r') as f:
+        for line in f:
+            timestamp, user = line.rsplit(' ', 1)
+            t.put(timestamp, user)
+            
+    t1 = time.time()
+    result = t.searchRange(tmin, tmax)
+    t2 = time.time()
+    print 'Time-consuming  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+
+def find_range_with_avl(filename = TDATA, tmin = TMIN, tmax = TMAX):
+    """
+    Profile result:
+    
+      Memory-consuming: 619 MB
+      Time-consuming  : [setup]67.5160 [search]0.0940 [result]32976
+    """
+    t = AVLTree()
+    
+    t0 = time.time()
+    with open(filename, 'r') as f:
+        for line in f:
+            timestamp, user = line.rsplit(' ', 1)
+            t.put(timestamp, user)
+            
+    t1 = time.time()
+    result = t.searchRange(tmin, tmax)
+    t2 = time.time()
+    print 'Time-consuming  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+
+def find_range_with_sbt(filename = TDATA, tmin = TMIN, tmax = TMAX):
+    """
+    Profile result:
+    
+      Memory-consuming: 619 MB
+      Time-consuming  : [setup]108.1870 [search]0.1100 [result]32976
+    """
+    t = SBTree()
+    
+    t0 = time.time()
+    with open(filename, 'r') as f:
+        for line in f:
+            timestamp, user = line.rsplit(' ', 1)
+            t.put(timestamp, user)
+            
+    t1 = time.time()
+    result = t.searchRange(tmin, tmax)
+    t2 = time.time()
+    print 'Time-consuming  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
 
 if __name__ == '__main__':
     #generate_data()
-    compare()
+    #compare()
+    #find_range_with_dict()
+    #find_range_with_rbtree()
+    #find_range_with_bst()
+    #find_range_with_treap()
+    #find_range_with_avl()
+    #find_range_with_sbt()
+    find_range_with_FastAVLTree()
+    #find_range_with_FastRBTree()
 

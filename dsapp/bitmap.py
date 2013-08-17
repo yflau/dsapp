@@ -15,6 +15,7 @@ array   list   bitarray   bitstring
 
 import random
 import time
+from os.path import join, exists
 
 from guppy import hpy
 from pympler import tracker
@@ -22,8 +23,12 @@ from pympler import tracker
 from memprof import memprof
 
 from decorators import timethis, memorythis, profile
+from settings import DATA_PATH
 
 TDATA = '%s.dat' % __file__
+def get_data_file(filename = TDATA):
+    return filename if exists(filename) else join(DATA_PATH, filename)
+TDATA = get_data_file()
 MAXN = 100000000
 
 ################################################################################
@@ -94,7 +99,7 @@ def bitsort_list(filename, maxn = MAXN):
     
     Profile result:
     
-      bitsort_list: 6.85899996758
+      bitsort_list: 3.36000013351
       memory consuming: 400 MB.
     """
     # Initialize bitmap
@@ -121,15 +126,18 @@ def test_bitsort_list():
 
 ################################################################################
 
-def bitsort_blist(filename, maxn = MAXN):
+from blist import blist
+
+@timethis
+def bitsort_blist(filename = TDATA, maxn = MAXN):
     """ Sort a file named 'filename' which
     consists of maxn integers where each
     integer is less than maxn.
 
     Profile result:
 
-      bitsort_blist: 
-      memory consuming: 
+      bitsort_blist: 4.84400010109
+      memory consuming: 70 MB
     """
     # Initialize bitmap
     a = blist([0])*maxn
@@ -502,7 +510,7 @@ if __name__=="__main__":
     #generate()
     #test_bitsort_array()
     #test_bitsort_list()
-    #test_bitsort_blist()
+    test_bitsort_blist()
     #test_bitsort_bitarray()
     #test_bitsort_bitstring()
     
@@ -513,7 +521,7 @@ if __name__=="__main__":
     
     #generate_numbers('10mi.dat', 10000000)
     #print kbitmap('10mi.dat')
-    print kbitmap_array('10mi.dat')
+    #print kbitmap_array('10mi.dat')
     #print validate_non_repeat('10mi.dat')
 
 

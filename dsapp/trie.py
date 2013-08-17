@@ -5,6 +5,17 @@
 # * Algorithm refered : http://blog.csdn.net/v_july_v/article/details/6897097
 # * Codes Refered : http://blog.csdn.net/psrincsdn/article/details/8158182
 
+from os.path import exists, join
+
+from decorators import timethis
+from settings import DATA_PATH
+
+
+TDATA = '%s.dat' % __file__
+def get_data_file(filename = TDATA):
+    return filename if exists(filename) else join(DATA_PATH, filename)
+TDATA = get_data_file()
+
 class Node(object):
     def __init__(self):
         self.id = 0
@@ -114,7 +125,7 @@ from memory_profiler import profile
 @profile
 def test():
     t = Trie()
-    with open('%s.dat' % __file__) as f:
+    with open(TDATA) as f:
         for line in f:
             t.insert(line.split()[-1])
     print t.search('to')
