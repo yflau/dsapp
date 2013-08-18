@@ -3,13 +3,42 @@
 
 from rbtree import rbtree
 
-def search_range(self, kmin, kmax):
+def keys_range(self, kmin, kmax):
     result = []
     
-    for k, v in self.iteritems():
-        if kmin < k < kmax:
-            result.append(k)
+    ck = self.ceiling_key(kmin)
+    while ck < kmax:
+        result.append(ck)
+        ck = self.succ_key(ck)
     
     return result
 
-rbtree.search_range = search_range
+rbtree.keys_range = keys_range
+
+def values_range(self, kmin, kmax):
+    result = []
+    
+    ck = self.ceiling_key(kmin)
+    while ck < kmax:
+        result.append(self[ck])
+        ck = self.succ_key(ck)
+    
+    return result
+
+rbtree.values_range = values_range
+
+def items_range(self, kmin, kmax):
+    result = []
+    
+    ck = self.ceiling_key(kmin)
+    while ck < kmax:
+        result.append((ck, self[ck]))
+        ck = self.succ_key(ck)
+    
+    return result
+
+rbtree.items_range = items_range
+
+if __name__ == '__main__':
+    pass
+

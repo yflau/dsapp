@@ -503,7 +503,7 @@ def find_top_k_with_rbtree(filename = TDATA, k = 10):
         if len(result) < k:
             heapq.heappush(result, (val, key))
         else:
-            heapq.heappushpop(res<input type="image" src="">ult, (val, key))
+            heapq.heappushpop(result, (val, key))
     
     return result
 
