@@ -297,6 +297,22 @@ class BinarySearchTree:
             print ''.join(pair)
 
 
+    def breadth_first_traversal(self, node):
+        # Create a queue and add the root node to it.
+        q = Queue()
+        q.put(node)
+        
+        # Visit each node in the tree.
+        while not q.empty() :
+        # Remove the next node from the queue and visit it.
+            node = q.get()
+            print node
+            # Add the two children to the queue.
+            if node.left is not None :
+                q.put(node.leftChild)
+            if node.right is not None :
+                q.put(node.rightChild)
+
     def preorder(self):
         return self._preorder(self.root)
     
