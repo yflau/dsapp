@@ -1,7 +1,9 @@
 #! /usr/bin/env python
 # coding: utf-8
 
-# based on chapter 20 of Introduction to Algorithms(Second Edition)
+# based on chapter 18 of Introduction to Algorithms(Second Edition)
+
+import bisect
 
 class BNode(object):
     
@@ -22,6 +24,8 @@ class BTree(object):
     def __init__(self, order = 3):
         self.order = order
         self.root = BNode()
+        self._minkeys = self.order - 1
+        self._minchildren = self.order
         self._maxkeys = 2 * self.order - 1
         self._maxchildren = 2 * self.order
         #self.disk_write(self.root)
@@ -45,7 +49,7 @@ class BTree(object):
         if not y.isLeaf:
             z.children = y.children[self.order:]
         x.children.insert(i+1, z)
-        x.keys.insert(i+1, y.keys[self.order-1])
+        x.keys.insert(i, y.keys[self.order-1])
         y.keys = y.keys[:self.order-1]
         y.children = y.children[:self.order]
         #self.disk_write(y)
@@ -78,17 +82,58 @@ class BTree(object):
                     i += 1
             self.insert_nonfull(x.children[i], key)
 
-    def delete(self, key):
-        pass
-
-    def __setitem__(self, k, v):
-        pass
-
-    def __getitem__(self, k, v):
-        pass
-
-    def __delitem__(self, k, v):
-        pass
+    def delete(self, node, key):
+        if key in node.keys:
+            if node.isLeaf:
+                node.keys.remove(key)
+            else:
+                ki = node.keys.index(key)
+                if len(node.children[ki].keys) >= self.order:
+                    kp = node.children[ki].keys[-1]
+                    self.delete(node, kp)
+                    node.keys[ki] = kp
+                elif len(node.children[ki+1].keys) >= self.order:
+                    kp = node.children[ki+1].keys[0]
+                    self.delete(node, kp)
+                    node.keys[ki] = kp
+                else:
+                    node.children[ki].keys.append(node.keys.pop(ki))
+                    rnode = node.children.pop(ki+1)
+                    node.children[ki].keys.extend(rnode.keys)
+                    node.children[ki].children.extend(rnode.children)
+                    if node == self.root and not node.keys:
+                        self.root = node.children[ki]
+                    self.delete(node.children[ki], key)
+        else:
+            ci = bisect.bisect_left(node.keys, key)
+            if len(node.children[ci].keys) == self._minkeys:
+                if ci > 1 and len(node.children[ci-1].keys) > self._minkeys:
+                    node.keys.insert(0, node.children[ci-1].keys.pop(-1))
+                    node.children[ci].keys.insert(0, node.keys.pop(-1))
+                    self.delete(node.children[ci], key)
+                elif ci < len(node.keys) and len(node.children[ci+1].keys) > self._minkeys:
+                    node.keys.append(node.children[ci+1].keys.pop(0))
+                    node.children[ci].keys.append(node.keys.pop(0))
+                    self.delete(node.children[ci], key)
+                else:
+                    if ci >= 1:
+                        node.children[ci-1].keys.append(node.keys.pop(ci-1))
+                        rnode = node.children.pop(ci)
+                        node.children[ci-1].keys.extend(rnode.keys)
+                        node.children[ci-1].children.extend(rnode.children)
+                        if node == self.root and not node.keys:
+                            self.root = node.children[ci-1]
+                        self.delete(node.children[ci-1], key)
+                    else:
+                        node.children[ci].keys.append(node.keys.pop(ci))
+                        rnode = node.children.pop(ci+1)
+                        node.children[ci].keys.extend(rnode.keys)
+                        node.children[ci].children.extend(rnode.children)
+                        if node == self.root and not node.keys:
+                            self.root = node.children[ci]
+                        self.delete(node.children[ci], key)
+            else:
+                self.delete(node.children[ci], key)
 
     def levels(self):
         if self.root:
@@ -121,31 +166,37 @@ class BTree(object):
             if node.right is not None :
                 q.put(node.rightChild)
 
+    def __setitem__(self, k, v):
+        pass
+
+    def __getitem__(self, k, v):
+        pass
+
+    def __delitem__(self, k, v):
+        pass
+
 
 if __name__ == '__main__':
     from pprint import pprint
-    b = BTree()
+    b = BTree(2)
+    b.insert(0)
+    b.insert(8)
+    b.insert(9)
     b.insert(1)
+    b.insert(7)
+    b.insert(2)
+    b.insert(6)
     b.insert(3)
     b.insert(5)
-    b.insert(2)
     b.insert(4)
-    b.insert(6)
-    b.insert(7)
-    b.insert(9)
-    b.insert(8)
-    b.insert(10)
-    b.insert(11)
-    b.insert(12)
-    b.insert(13)
-    b.insert(14)
-    b.insert(15)
-    b.insert(16)
-    b.insert(17)
-    b.insert(18)
-    b.insert(19)
-    b.insert(20)
-    b.insert(21)
+    b.delete(b.root, 4)
+    b.delete(b.root, 5)
+    b.delete(b.root, 3)
+    b.delete(b.root, 6)
+    b.delete(b.root, 2)
+    b.delete(b.root, 7)
+    b.delete(b.root, 1)
+    b.delete(b.root, 9)
     pprint(b.levels())
-    n, i = b.search(b.root, 6)
-    print n, i
+    #n, i = b.search(b.root, 6)
+    #print n, i
