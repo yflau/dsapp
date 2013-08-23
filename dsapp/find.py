@@ -14,6 +14,7 @@ import sqlite3
 from mx.BeeBase import BeeDict
 from btree import BPlusTree
 from BTrees.OOBTree import OOBTree
+from pybtree import BTree
 
 from bst import BinarySearchTree
 from treap import Treap
@@ -373,6 +374,27 @@ def find_range_with_BTrees(filename = TDATA, tmin = TMIN, tmax = TMAX):
     t2 = time.time()
     print 'Time-consuming  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
 
+def find_range_with_pybtree(filename = TDATA, tmin = TMIN, tmax = TMAX):
+    """
+    ds: B-Tree
+    
+    Profile result:
+    
+      Memory-consuming: 123 MB
+      Time-consuming  : [setup]245.5630 [search]0.6250 [result]34584
+    """
+    dic = BTree(500)
+    
+    t0 = time.time()
+    with open(filename, 'r') as f:
+        for line in f:
+            timestamp, user = line.rsplit('    ', 1)
+            dic[timestamp] = user
+
+    t1 = time.time()
+    result = dic.keys(tmin, tmax)
+    t2 = time.time()
+    print 'Time-consuming  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
 
 def find_range_with_mxBeeBase(filename = TDATA, tmin = TMIN, tmax = TMAX):
     """
@@ -415,6 +437,7 @@ if __name__ == '__main__':
     #find_range_with_FastRBTree()
     #find_range_with_sqlite3()
     #find_range_with_btree()
-    find_range_with_BTrees()
+    #find_range_with_BTrees()
+    find_range_with_pybtree()
     #find_range_with_mxBeeBase()
 
