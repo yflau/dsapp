@@ -6,13 +6,14 @@
 import bisect
 
 class BNode(object):
-    
+
     def __init__(self):
         self.keys = []
         self.children = []
-        self.isLeaf = True
-        #self.values = []
-        
+
+    def is_leaf(self):
+        return not bool(self.children)
+
     def __str__(self):
         return '(%s)' % ','.join([str(e) for e in self.keys])
 
@@ -20,7 +21,7 @@ class BNode(object):
         return '(%s)' % ','.join([str(e) for e in self.keys])
 
 class BTree(object):
-    
+
     def __init__(self, order = 3):
         self.order = order
         self.root = BNode()
@@ -29,14 +30,14 @@ class BTree(object):
         self._maxkeys = 2 * self.order - 1
         self._maxchildren = 2 * self.order
         #self.disk_write(self.root)
-        
+
     def search(self, node, key):
         i = 0
         while i < len(node.keys) and key > node.keys[i]:
             i += 1
         if i < len(node.keys) and key == node.keys[i]:
             return (node, i)
-        if node.isLeaf:
+        if node.is_leaf():
             return None
         else:
             # self.disk_read(node.children[i])
@@ -44,9 +45,8 @@ class BTree(object):
 
     def split_child(self, x, i, y):
         z = BNode()
-        z.isLeaf = y.isLeaf
         z.keys = y.keys[self.order:]
-        if not y.isLeaf:
+        if not y.is_leaf():
             z.children = y.children[self.order:]
         x.children.insert(i+1, z)
         x.keys.insert(i, y.keys[self.order-1])
@@ -60,18 +60,17 @@ class BTree(object):
         if len(self.root.keys) == self._maxkeys:
             oldroot = self.root
             self.root = BNode()
-            self.root.isLeaf = False
             self.root.children.append(oldroot)
             self.split_child(self.root, 0, oldroot)
             self.insert_nonfull(self.root, key)
         else:
             self.insert_nonfull(self.root, key)
-            
+
     def insert_nonfull(self, x, key):
         i = len(x.keys)
         while i > 0 and key < x.keys[i-1]:
             i -= 1
-        if x.isLeaf:
+        if x.is_leaf():
             x.keys.insert(i, key)
             #self.disk_write(x)
         else:
@@ -84,7 +83,7 @@ class BTree(object):
 
     def delete(self, node, key):
         if key in node.keys:
-            if node.isLeaf:
+            if node.is_leaf():
                 node.keys.remove(key)
             else:
                 ki = node.keys.index(key)
@@ -145,7 +144,7 @@ class BTree(object):
                     if node.children:
                         for e in node.children:
                             leveldict.setdefault(level+1, []).append(e)
-                    if node.isLeaf:
+                    if node.is_leaf():
                         maxlevel = True
                 if maxlevel:
                     break
@@ -157,7 +156,7 @@ class BTree(object):
     def breadth_first_traversal(self, node):
         q = Queue()
         q.put(node)
-        
+
         while not q.empty():
             node = q.get()
             print node
@@ -189,14 +188,14 @@ if __name__ == '__main__':
     b.insert(3)
     b.insert(5)
     b.insert(4)
-    b.delete(b.root, 4)
-    b.delete(b.root, 5)
-    b.delete(b.root, 3)
-    b.delete(b.root, 6)
-    b.delete(b.root, 2)
-    b.delete(b.root, 7)
-    b.delete(b.root, 1)
-    b.delete(b.root, 9)
+    #b.delete(b.root, 4)
+    #b.delete(b.root, 5)
+    #b.delete(b.root, 3)
+    #b.delete(b.root, 6)
+    #b.delete(b.root, 2)
+    #b.delete(b.root, 7)
+    #b.delete(b.root, 1)
+    #b.delete(b.root, 9)
     pprint(b.levels())
-    #n, i = b.search(b.root, 6)
-    #print n, i
+    n, i = b.search(b.root, 5)
+    print n, i
