@@ -380,10 +380,20 @@ def find_range_with_pybtree(filename = TDATA, tmin = TMIN, tmax = TMAX):
     
     Profile result:
     
+     degree: 500
+
       Memory-consuming: 123 MB
-      Time-consuming  : [setup]245.5630 [search]0.6250 [result]34584
+      Time-consuming(list)  : [setup]17.8750 [search]0.0000 [result]34584
+      
+      Memory-consuming: 128 MB
+      Time-consuming(blist) : [setup]22.1870 [search]0.0000 [result]34584
+        
+     degree: 1000
+      
+      Memory-consuming: 132 MB
+      Time-consuming(list)  : [setup]16.4060 [search]0.0000 [result]34584
     """
-    dic = BTree(500)
+    dic = BTree(1000)
     
     t0 = time.time()
     with open(filename, 'r') as f:

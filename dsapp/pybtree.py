@@ -6,13 +6,18 @@
 import bisect
 import Queue
 
+try:
+    from blist import blist
+except:
+    pass
+
 
 class BNode(object):
 
     def __init__(self):
         # Will be better with deque or blist?
-        self.keys = []
-        self.children = []
+        self.keys = list()
+        self.children = list()
         self.data = {}
 
     def is_leaf(self):
@@ -30,7 +35,7 @@ class BTree(object):
     def __init__(self, degree = 3):
         self.degree = degree
         self.root = BNode()
-        
+
         self._minkeys = self.degree - 1
         self._minchildren = self.degree
         self._maxkeys = 2 * self.degree - 1
@@ -89,8 +94,10 @@ class BTree(object):
 
     def insert_nonfull(self, x, key, value = None):
         i = len(x.keys)
-        while i > 0 and key < x.keys[i-1]:
-            i -= 1
+        # performance bottleneck
+        #while i > 0 and key < x.keys[i-1]:
+        #    i -= 1
+        i = bisect.bisect_left(x.keys, key)
         if x.is_leaf():
             x.keys.insert(i, key)
             if value:
@@ -187,30 +194,27 @@ class BTree(object):
                 self.delete(node.children[ci], key)
 
     def keys(self, kmin = None, kmax = None):
-        keys = self._keys(self.root)
-        if kmin is None:
-            imin = None
-        else:
-            imin = bisect.bisect_left(keys, kmin)
-        if kmax is None:
-            imax = None
-        else:
-            imax = bisect.bisect_left(keys, kmax)
-        print imin, imax
-        
-        return self._keys(self.root)[imin:imax]
-
-    def _keys(self, node, kmin = None, kmax = None):
         keys = []
         
-        if node.children:
-            for i in range(len(node.keys)):
-                keys.extend(self._keys(node.children[i]))
-                keys.append(node.keys[i])
-            keys.extend(self._keys(node.children[-1]))
-        else:
-            keys.extend(node.keys)
+        if kmin is None:
+            kmin = self.min()
+        if kmax is None:
+            kmax = self.max()
         
+        return self._keys(self.root, keys, kmin, kmax)
+
+    def _keys(self, node, keys, kmin, kmax):
+        """return [key for key in allkeys if kmin <= keys <= kmax]"""
+        imin = bisect.bisect_left(node.keys, kmin)
+        imax = bisect.bisect_left(node.keys, kmax)
+
+        if node.children:
+            for e in node.children[imin:imax+1]:
+                self._keys(e, keys, kmin, kmax)
+        keys.extend(node.keys[imin:imax])
+        if node.keys[imax-1] == kmax:
+            keys.append(kmax)
+
         return keys
 
     def min(self):
@@ -239,10 +243,10 @@ class BTree(object):
 
     def levels(self):
         leveldict = {}
-        
+
         for level, node in self.bft(self.root):
             leveldict.setdefault(level, []).append(node)
-        
+
         return leveldict
 
     def pprint(self, data = False, width = 80):
@@ -292,5 +296,7 @@ if __name__ == '__main__':
     print 'min key: ', b.min()
     print 'max key: ', b.max()
     print 'ceiling: ', b.ceiling(b.root, 9.4)
+    #print b.keys()
+    #print b.keys(2.2, 7.8)
     print b.keys()
-    print b.keys(2.2, 7.8)
+    print b.keys(3, 6)
