@@ -7,6 +7,7 @@ import bisect
 import Queue
 
 try:
+    # bad performance on my laptop(windows xp)
     from blist import blist
 except:
     pass
@@ -15,19 +16,18 @@ except:
 class BNode(object):
 
     def __init__(self):
-        # Will be better with deque or blist?
+        # Will be better with deque?
         self.keys = list()
+        self.values = list()
         self.children = list()
-        self.data = {}
 
     def is_leaf(self):
         return not bool(self.children)
 
     def __str__(self):
-        return '(%s)' % ','.join([str(e) for e in self.keys])
+        return '|%s|' % ' '.join(['{%s:%s}' % e for e in zip(self.keys, self.values)])
 
-    def __repr__(self):
-        return '(%s)' % ','.join([str(e) for e in self.keys])
+    __repr__ = __str__
 
 
 class BTree(object):
@@ -66,23 +66,20 @@ class BTree(object):
     def split_child(self, x, i, y):
         z = BNode()
         z.keys = y.keys[self.degree:]
-        z.data = dict([(k, y.data[k]) for k in z.keys])
+        z.values = y.values[self.degree:]
         if not y.is_leaf():
             z.children = y.children[self.degree:]
         x.children.insert(i+1, z)
-        mk = y.keys[self.degree-1]
-        x.keys.insert(i, mk)
-        mv = y.data.get(mk)
-        if mv:
-            x.data[mk] = mv
+        x.keys.insert(i, y.keys[self.degree-1])
+        x.values.insert(i, y.values[self.degree-1])
         y.keys = y.keys[:self.degree-1]
-        y.data = dict([(k, y.data[k]) for k in y.keys])
+        y.values = y.values[:self.degree-1]
         y.children = y.children[:self.degree]
         #self.disk_write(y)
         #self.disk_write(z)
         #self.disk_write(x)
 
-    def insert(self, key, value = None):
+    def insert(self, key, value):
         if len(self.root.keys) == self._maxkeys:
             oldroot = self.root
             self.root = BNode()
@@ -92,16 +89,14 @@ class BTree(object):
         else:
             self.insert_nonfull(self.root, key, value)
 
-    def insert_nonfull(self, x, key, value = None):
-        i = len(x.keys)
-        # performance bottleneck
+    def insert_nonfull(self, x, key, value):
+        # performance bottleneck fixed by bisect
         #while i > 0 and key < x.keys[i-1]:
         #    i -= 1
         i = bisect.bisect_left(x.keys, key)
         if x.is_leaf():
             x.keys.insert(i, key)
-            if value:
-                x.data.setdefault(key, value)
+            x.values.insert(i, value)
             #self.disk_write(x)
         else:
             #self.disk_read(x.children[i])
@@ -114,32 +109,29 @@ class BTree(object):
     def delete(self, node, key):
         if key in node.keys:
             if node.is_leaf():
-                node.keys.remove(key)
-                node.data.pop(key, None)
+                index = node.keys.index(key)
+                node.keys.pop(index)
+                node.values.pop(index)
             else:
                 ki = node.keys.index(key)
                 if len(node.children[ki].keys) >= self.degree:
                     kp = node.children[ki].keys[-1]
-                    vp = node.children[ki].data.pop(kp, None)
+                    vp = node.children[ki].values.pop(-1)
                     self.delete(node, kp)
                     node.keys[ki] = kp
-                    if vp:
-                        node.data[kp] = vp
+                    node.values[ki] = vp
                 elif len(node.children[ki+1].keys) >= self.degree:
                     kp = node.children[ki+1].keys[0]
-                    vp = node.children[ki+1].data.pop(kp, None)
+                    vp = node.children[ki+1].values.pop(0)
                     self.delete(node, kp)
                     node.keys[ki] = kp
-                    if vp:
-                        node.data[kp] = vp
+                    node.values[ki] = vp
                 else:
                     node.children[ki].keys.append(node.keys.pop(ki))
-                    v = node.data.pop(key, None)
-                    if v:
-                        node.children[ki].data[key] = v
+                    node.children[ki].values.append(node.values.pop(ki))
                     rnode = node.children.pop(ki+1)
                     node.children[ki].keys.extend(rnode.keys)
-                    node.children[ki].data.update(rnode.data)
+                    node.children[ki].values.extend(rnode.values)
                     node.children[ki].children.extend(rnode.children)
                     if node == self.root and not node.keys:
                         self.root = node.children[ki]
@@ -148,44 +140,32 @@ class BTree(object):
             ci = bisect.bisect_left(node.keys, key)
             if len(node.children[ci].keys) == self._minkeys:
                 if ci > 1 and len(node.children[ci-1].keys) > self._minkeys:
-                    kp = node.children[ci-1].keys.pop(-1)
-                    vp = node.children[ci-1].data.pop(kp, None)
-                    node.keys.insert(0, kp)
-                    if vp:
-                        node.data[kp] = vp
+                    node.keys.insert(0, node.children[ci-1].keys.pop(-1))
+                    node.values.insert(0, node.children[ci-1].values.pop(-1))
                     node.children[ci].keys.insert(0, node.keys.pop(-1))
                     self.delete(node.children[ci], key)
                 elif ci < len(node.keys) and len(node.children[ci+1].keys) > self._minkeys:
-                    kp = node.children[ci+1].keys.pop(0)
-                    vp = node.children[ci+1].data.pop(kp, None)
-                    node.keys.append(kp)
-                    if vp:
-                        node.data[kp] = vp
+                    node.keys.append(node.children[ci+1].keys.pop(0))
+                    node.values.append(node.children[ci+1].values.pop(0))
                     node.children[ci].keys.append(node.keys.pop(0))
                     self.delete(node.children[ci], key)
                 else:
                     if ci >= 1:
-                        kp = node.keys.pop(ci-1)
-                        vp = node.data.pop(kp, None)
-                        node.children[ci-1].keys.append(kp)
-                        if vp:
-                            node.children[ci-1].data[kp] = vp
+                        node.children[ci-1].keys.append(node.keys.pop(ci-1))
+                        node.children[ci-1].values.append(node.values.pop(ci-1))
                         rnode = node.children.pop(ci)
                         node.children[ci-1].keys.extend(rnode.keys)
-                        node.children[ci-1].data.extend(rnode.data)
+                        node.children[ci-1].values.extend(rnode.values)
                         node.children[ci-1].children.extend(rnode.children)
                         if node == self.root and not node.keys:
                             self.root = node.children[ci-1]
                         self.delete(node.children[ci-1], key)
                     else:
-                        kp = node.keys.pop(ci)
-                        vp = node.data.pop(kp, None)
-                        node.children[ci].keys.append(kp)
-                        if vp:
-                            node.children[ci].data[kp] = vp
+                        node.children[ci].keys.append(node.keys.pop(ci))
+                        node.children[ci].values.append(node.values.pop(ci))
                         rnode = node.children.pop(ci+1)
                         node.children[ci].keys.extend(rnode.keys)
-                        node.children[ci].data.extend(rnode.data)
+                        node.children[ci].values.extend(rnode.values)
                         node.children[ci].children.extend(rnode.children)
                         if node == self.root and not node.keys:
                             self.root = node.children[ci]
@@ -201,21 +181,135 @@ class BTree(object):
         if kmax is None:
             kmax = self.max()
         
-        return self._keys(self.root, keys, kmin, kmax)
+        return self._keys(self.root, kmin, kmax, keys)
 
-    def _keys(self, node, keys, kmin, kmax):
-        """return [key for key in allkeys if kmin <= keys <= kmax]"""
+    def _keys(self, node, kmin, kmax, keys):
+        """return [k for k in allkeys if kmin <= k <= kmax]"""
         imin = bisect.bisect_left(node.keys, kmin)
         imax = bisect.bisect_left(node.keys, kmax)
 
         if node.children:
             for e in node.children[imin:imax+1]:
-                self._keys(e, keys, kmin, kmax)
+                self._keys(e, kmin, kmax, keys)
         keys.extend(node.keys[imin:imax])
         if node.keys[imax-1] == kmax:
             keys.append(kmax)
 
         return keys
+
+    def iterkeys(self, kmin = None, kmax = None):
+        if kmin is None:
+            kmin = self.min()
+        if kmax is None:
+            kmax = self.max()
+        
+        return self._iterkeys(self.root, kmin, kmax)
+
+    def _iterkeys(self, node, kmin, kmax):
+        """return [k for k in allkeys if kmin <= k <= kmax]"""
+        imin = bisect.bisect_left(node.keys, kmin)
+        imax = bisect.bisect_left(node.keys, kmax)
+
+        if node.children:
+            for e in node.children[imin:imax+1]:
+                for k in self._iterkeys(e, kmin, kmax):
+                    yield k
+        for i in xrange(imin, imax):
+            yield node.keys[i]
+        if node.keys[imax-1] == kmax:
+            yield kmax
+
+    def values(self, kmin = None, kmax = None):
+        values = []
+        
+        if kmin is None:
+            kmin = self.min()
+        if kmax is None:
+            kmax = self.max()
+        
+        return self._values(self.root, kmin, kmax, values)
+
+    def _values(self, node, kmin, kmax, values):
+        """return [v for k in allkeys if kmin <= k <= kmax]"""
+        imin = bisect.bisect_left(node.keys, kmin)
+        imax = bisect.bisect_left(node.keys, kmax)
+
+        if node.children:
+            for e in node.children[imin:imax+1]:
+                self._values(e, kmin, kmax, values)
+        values.extend(node.values[imin:imax])
+        if node.keys[imax-1] == kmax:
+            values.append(node.values[imax-1])
+
+        return values
+
+    def itervalues(self, kmin = None, kmax = None):
+        if kmin is None:
+            kmin = self.min()
+        if kmax is None:
+            kmax = self.max()
+        
+        return self._itervalues(self.root, kmin, kmax)
+
+    def _itervalues(self, node, kmin, kmax):
+        """return [k for k in allkeys if kmin <= k <= kmax]"""
+        imin = bisect.bisect_left(node.keys, kmin)
+        imax = bisect.bisect_left(node.keys, kmax)
+
+        if node.children:
+            for e in node.children[imin:imax+1]:
+                for v in self._itervalues(e, kmin, kmax):
+                    yield v
+        for i in xrange(imin, imax):
+            yield node.values[i]
+        if node.keys[imax-1] == kmax:
+            yield node.values[imax-1]
+
+    def items(self, kmin = None, kmax = None):
+        items = []
+        
+        if kmin is None:
+            kmin = self.min()
+        if kmax is None:
+            kmax = self.max()
+        
+        return self._items(self.root, kmin, kmax, items)
+
+    def _items(self, node, kmin, kmax, items):
+        """return [(k,v) for k in allkeys if kmin <= k <= kmax]"""
+        imin = bisect.bisect_left(node.keys, kmin)
+        imax = bisect.bisect_left(node.keys, kmax)
+
+        if node.children:
+            for e in node.children[imin:imax+1]:
+                self._items(e, kmin, kmax, items)
+        items.extend(zip(node.keys[imin:imax], node.values[imin:imax]))
+        if node.keys[imax-1] == kmax:
+            items.append((kmax, node.values[imax-1]))
+
+        return items
+
+    def iteritems(self, kmin = None, kmax = None):
+        if kmin is None:
+            kmin = self.min()
+        if kmax is None:
+            kmax = self.max()
+        
+        return self._iteritems(self.root, kmin, kmax)
+
+    def _iteritems(self, node, kmin, kmax):
+        """return [k for k in allkeys if kmin <= k <= kmax]"""
+        imin = bisect.bisect_left(node.keys, kmin)
+        imax = bisect.bisect_left(node.keys, kmax)
+
+        if node.children:
+            for e in node.children[imin:imax+1]:
+                for i in self._iteritems(e, kmin, kmax):
+                    yield i
+        for i in xrange(imin, imax):
+            yield (node.keys[i], node.values[i])
+        if node.keys[imax-1] == kmax:
+            yield (kmax, node.values[imax-1])
 
     def min(self):
         node = self.root
@@ -249,14 +343,11 @@ class BTree(object):
 
         return leveldict
 
-    def pprint(self, data = False, width = 80):
+    def pprint(self, width = 80):
         leveldict = self.levels()
         keys = leveldict.keys()
         for k in keys:
-            if data:
-                print ' '.join(str(e.data) for e in leveldict[k]).center(width)
-            else:
-                print ' '.join(str(e) for e in leveldict[k]).center(width)
+            print ' '.join(str(e) for e in leveldict[k]).center(width)
 
     def __setitem__(self, k, v):
         self.insert(k, v)
@@ -264,7 +355,7 @@ class BTree(object):
     def __getitem__(self, k):
         node, i = self.search(self.root, k)
         if node:
-            return node.data.get(node.keys[i], None)
+            return node.values[i]
         else:
             return None
 
@@ -289,14 +380,17 @@ if __name__ == '__main__':
     ]
     for k, v in kv:
         b[k] = v
-    b.pprint(True)
+    b.pprint()
     del b[1]
-    b.pprint(True)
+    b.pprint()
     print b[5.5]
     print 'min key: ', b.min()
     print 'max key: ', b.max()
     print 'ceiling: ', b.ceiling(b.root, 9.4)
-    #print b.keys()
-    #print b.keys(2.2, 7.8)
     print b.keys()
     print b.keys(3, 6)
+    print list(b.iterkeys(3, 6))
+    print b.values(3, 6)
+    print list(b.itervalues(3, 6))
+    print b.items(3, 6)
+    print list(b.iteritems(3, 6))
