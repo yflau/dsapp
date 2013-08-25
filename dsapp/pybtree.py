@@ -25,6 +25,18 @@ class BNode(object):
     def is_leaf(self):
         return not bool(self.children)
 
+    def min(self):
+        node = self
+        while node.children:
+            node = node.children[0]
+        return node
+
+    def max(self):
+        node = self
+        while node.children:
+            node = node.children[-1]
+        return node
+
     def __str__(self):
         return '|%s|' % ' '.join(['{%s:%s}' % e for e in zip(self.keys, self.values)])
 
@@ -116,15 +128,17 @@ class BTree(object):
             else:
                 ki = node.keys.index(key)
                 if len(node.children[ki].keys) >= self.degree:
-                    kp = node.children[ki].keys[-1]
-                    vp = node.children[ki].values.pop(-1)
-                    self.delete(node, kp)
+                    nmax = node.children[ki].max()
+                    kp = nmax.keys[-1]
+                    vp = nmax.values[-1]
+                    self.delete(node.children[ki], kp)
                     node.keys[ki] = kp
                     node.values[ki] = vp
                 elif len(node.children[ki+1].keys) >= self.degree:
-                    kp = node.children[ki+1].keys[0]
-                    vp = node.children[ki+1].values.pop(0)
-                    self.delete(node, kp)
+                    nmin = node.children[ki+1].min()
+                    kp = nmin.keys[0]
+                    vp = nmin.values[0]
+                    self.delete(node.children[ki+1], kp)
                     node.keys[ki] = kp
                     node.values[ki] = vp
                 else:
@@ -139,16 +153,23 @@ class BTree(object):
                     self.delete(node.children[ki], key)
         else:
             ci = bisect.bisect_left(node.keys, key)
+            print node, key, node.children, ci
             if len(node.children[ci].keys) == self._minkeys:
-                if ci > 1 and len(node.children[ci-1].keys) > self._minkeys:
-                    node.keys.insert(0, node.children[ci-1].keys.pop(-1))
-                    node.values.insert(0, node.children[ci-1].values.pop(-1))
-                    node.children[ci].keys.insert(0, node.keys.pop(-1))
+                if ci >= 1 and len(node.children[ci-1].keys) > self._minkeys:
+                    node.children[ci].keys.insert(0, node.keys[ci-1])
+                    node.children[ci].values.insert(0, node.values[ci-1])
+                    node.keys[ci-1] = node.children[ci-1].keys.pop(-1)
+                    node.values[ci-1] = node.children[ci-1].values.pop(-1)
+                    node.children[ci].children = node.children[ci-1].children[-1:] + node.children[ci].children
+                    node.children[ci-1].children = node.children[ci-1].children[:-1]
                     self.delete(node.children[ci], key)
                 elif ci < len(node.keys) and len(node.children[ci+1].keys) > self._minkeys:
-                    node.keys.append(node.children[ci+1].keys.pop(0))
-                    node.values.append(node.children[ci+1].values.pop(0))
-                    node.children[ci].keys.append(node.keys.pop(0))
+                    node.children[ci].keys.append(node.keys[ci])
+                    node.children[ci].values.append(node.values[ci])
+                    node.keys[ci] = node.children[ci+1].keys.pop(0)
+                    node.values[ci] = node.children[ci+1].values.pop(0)
+                    node.children[ci].children.extend(node.children[ci+1].children[:1])
+                    node.children[ci+1].children = node.children[ci+1].children[1:]
                     self.delete(node.children[ci], key)
                 else:
                     if ci >= 1:
@@ -376,13 +397,17 @@ def test_BTree():
         (3, 'three'),
         (5, 'five'),
         (4, 'four'),
+        (10, 'ten'),
+        (11, 'eleven'),
+        (12, 'twelve'),
     ]
     for k, v in kv:
         b[k] = v
+    n,i = b.search(b.root, 3)
+    print n.keys, n.values
     b.pprint()
-    del b[1]
+    del b[12]
     b.pprint()
-    print b[5.5]
     print 'min key: ', b.min()
     print 'max key: ', b.max()
     print 'ceiling: ', b.ceiling(b.root, 9.4)
