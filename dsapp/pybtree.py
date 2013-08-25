@@ -119,7 +119,10 @@ class BTree(object):
                     i += 1
             self.insert_nonfull(x.children[i], key, value)
 
-    def delete(self, node, key):
+    def delete(self, key):
+        self._delete(self.root, key)
+
+    def _delete(self, node, key):
         if key in node.keys:
             if node.is_leaf():
                 index = node.keys.index(key)
@@ -131,14 +134,14 @@ class BTree(object):
                     nmax = node.children[ki].max()
                     kp = nmax.keys[-1]
                     vp = nmax.values[-1]
-                    self.delete(node.children[ki], kp)
+                    self._delete(node.children[ki], kp)
                     node.keys[ki] = kp
                     node.values[ki] = vp
                 elif len(node.children[ki+1].keys) >= self.degree:
                     nmin = node.children[ki+1].min()
                     kp = nmin.keys[0]
                     vp = nmin.values[0]
-                    self.delete(node.children[ki+1], kp)
+                    self._delete(node.children[ki+1], kp)
                     node.keys[ki] = kp
                     node.values[ki] = vp
                 else:
@@ -150,10 +153,9 @@ class BTree(object):
                     node.children[ki].children.extend(rnode.children)
                     if node == self.root and not node.keys:
                         self.root = node.children[ki]
-                    self.delete(node.children[ki], key)
+                    self._delete(node.children[ki], key)
         else:
             ci = bisect.bisect_left(node.keys, key)
-            print node, key, node.children, ci
             if len(node.children[ci].keys) == self._minkeys:
                 if ci >= 1 and len(node.children[ci-1].keys) > self._minkeys:
                     node.children[ci].keys.insert(0, node.keys[ci-1])
@@ -162,7 +164,7 @@ class BTree(object):
                     node.values[ci-1] = node.children[ci-1].values.pop(-1)
                     node.children[ci].children = node.children[ci-1].children[-1:] + node.children[ci].children
                     node.children[ci-1].children = node.children[ci-1].children[:-1]
-                    self.delete(node.children[ci], key)
+                    self._delete(node.children[ci], key)
                 elif ci < len(node.keys) and len(node.children[ci+1].keys) > self._minkeys:
                     node.children[ci].keys.append(node.keys[ci])
                     node.children[ci].values.append(node.values[ci])
@@ -170,7 +172,7 @@ class BTree(object):
                     node.values[ci] = node.children[ci+1].values.pop(0)
                     node.children[ci].children.extend(node.children[ci+1].children[:1])
                     node.children[ci+1].children = node.children[ci+1].children[1:]
-                    self.delete(node.children[ci], key)
+                    self._delete(node.children[ci], key)
                 else:
                     if ci >= 1:
                         node.children[ci-1].keys.append(node.keys.pop(ci-1))
@@ -181,7 +183,7 @@ class BTree(object):
                         node.children[ci-1].children.extend(rnode.children)
                         if node == self.root and not node.keys:
                             self.root = node.children[ci-1]
-                        self.delete(node.children[ci-1], key)
+                        self._delete(node.children[ci-1], key)
                     else:
                         node.children[ci].keys.append(node.keys.pop(ci))
                         node.children[ci].values.append(node.values.pop(ci))
@@ -191,9 +193,9 @@ class BTree(object):
                         node.children[ci].children.extend(rnode.children)
                         if node == self.root and not node.keys:
                             self.root = node.children[ci]
-                        self.delete(node.children[ci], key)
+                        self._delete(node.children[ci], key)
             else:
-                self.delete(node.children[ci], key)
+                self._delete(node.children[ci], key)
 
     def keys(self, kmin = None, kmax = None):
         keys = []
@@ -382,7 +384,7 @@ class BTree(object):
             return None
 
     def __delitem__(self, k):
-        self.delete(self.root, k)
+        self._delete(self.root, k)
 
 def test_BTree():
     b = BTree(2)
@@ -433,6 +435,18 @@ class BPNode(object):
 
     def is_leaf(self):
         return not bool(self.children)
+
+    def min(self):
+        node = self
+        while node.children:
+            node = node.children[0]
+        return node
+
+    def max(self):
+        node = self
+        while node.children:
+            node = node.children[-1]
+        return node
 
     def __str__(self):
         return '|%s|' % ' '.join(['{%s:%s}' % e for e in izip_longest(self.keys, self.values)])
@@ -522,7 +536,10 @@ class BPTree(object):
                     i += 1
             self.insert_nonfull(x.children[i], key, value)
 
-    def delete(self, node, key):
+    def delete(self, key):
+        self._delete(self.root, key)
+
+    def _delete(self, node, key):
         """chaos!!!"""
         if key in node.keys:
             if node.is_leaf():
@@ -532,81 +549,97 @@ class BPTree(object):
             else:
                 ki = node.keys.index(key)
                 if len(node.children[ki].keys) >= self.degree:
-                    kp = node.children[ki].keys[-1]
-                    if node.children[ki].is_leaf():
-                        vp = node.children[ki].values.pop(-1)
-                    if not node.children[ki].is_leaf():
-                        self.delete(node, kp)
+                    nmax = node.children[ki].max()
+                    nmin = node.children[ki+1].min()
+                    kp = nmax.keys[-1]
+                    self._delete(node.children[ki], kp)
                     node.keys[ki] = kp
-                    self.delete(node, key)
+                    nmin.keys[0] = kp
+                    nmin.values[0] = nmax.values[-1]
                 elif len(node.children[ki+1].keys) >= self.degree:
-                    kp = node.children[ki+1].keys[0]
-                    if node.children[ki+1].is_leaf():
-                        if kp == key:
-                            node.children[ki+1].keys.pop(0)
-                            node.children[ki+1].values.pop(0)
-                    if len(node.children[ki+1].keys) >= self.degree:
-                        kp = node.children[ki+1].keys[0]
-                        if not node.children[ki+1].is_leaf():
-                            self.delete(node, kp)
-                        node.keys[ki] = kp
-                    self.delete(node, key)
+                    nmin = node.children[ki+1].min()
+                    nmin.keys.pop(0)
+                    nmin.values.pop(0)
+                    kp = nmin.keys[0]
+                    node.keys[ki] = nmin.keys[0]
                 else:
                     rnode = node.children.pop(ki+1)
                     if node.children[ki].is_leaf():
                         node.keys.pop(ki)
                         node.children[ki].keys.extend(rnode.keys)
                         node.children[ki].values.extend(rnode.values)
-                        node.children[ki].children.extend(rnode.children)
                     else:
                         node.children[ki].keys.append(node.keys.pop(ki))
                         node.children[ki].keys.extend(rnode.keys)
                         node.children[ki].children.extend(rnode.children)
                     if node == self.root and not node.keys:
                         self.root = node.children[ki]
-                    self.delete(node.children[ki], key)
+                    self._delete(node.children[ki], key)
         else:
             ci = bisect.bisect_left(node.keys, key)
             if len(node.children[ci].keys) == self._minkeys:
-                if ci > 1 and len(node.children[ci-1].keys) > self._minkeys:
-                    if not node.children[ci].is_leaf():
-                        node.keys.insert(0, node.children[ci-1].keys.pop(-1))
-                    node.children[ci].keys.insert(0, node.keys.pop(-1))
-                    self.delete(node.children[ci], key)
+                if ci >= 1 and len(node.children[ci-1].keys) > self._minkeys:
+                    if node.children[ci].is_leaf():
+                        kp = node.children[ci-1].keys.pop(-1)
+                        vp = node.children[ci-1].values.pop(-1)
+                        node.keys[ci-1] = kp
+                        node.children[ci].keys.insert(0, kp)
+                        node.children[ci].values.insert(0, vp)
+                    else:
+                        node.children[ci].keys.insert(0, node.keys[ci-1])
+                        node.keys[ci-1] = node.children[ci-1].keys.pop(-1)
+                        node.children[ci].children = node.children[ci-1].children[-1:] + node.children[ci].children
+                        node.children[ci-1].children = node.children[ci-1].children[:-1]
+
+                    node.children[ci].keys.insert(0, node.keys[ci-1])
+                    node.children[ci].values.insert(0, node.values[ci-1])
+                    node.keys[ci-1] = node.children[ci-1].keys.pop(-1)
+                    node.values[ci-1] = node.children[ci-1].values.pop(-1)
+                    node.children[ci].children = node.children[ci-1].children[-1:] + node.children[ci].children
+                    node.children[ci-1].children = node.children[ci-1].children[:-1]
+                    self._delete(node.children[ci], key)
                 elif ci < len(node.keys) and len(node.children[ci+1].keys) > self._minkeys:
-                    if not node.children[ci+1].is_leaf():
-                        node.keys.append(node.children[ci+1].keys.pop(0))
-                    bisect.insort(node.children[ci].keys, node.keys.pop(0))
-                    self.delete(node.children[ci], key)
+                    if node.children[ci].is_leaf():
+                        kp = node.children[ci+1].keys.pop(0)
+                        vp = node.children[ci+1].values.pop(0)
+                        node.children[ci].keys.append(kp)
+                        node.children[ci].values.append(vp)
+                        node.keys[ci] = node.children[ci+1].keys[0]
+                    else:
+                        node.children[ci].keys.append(node.keys[ci])
+                        node.keys[ci] = node.children[ci+1].keys.pop(0)
+                        node.children[ci].children.extend(node.children[ci+1].children[:1])
+                        node.children[ci+1].children = node.children[ci+1].children[1:]
+                    self._delete(node.children[ci], key)
                 else:
                     if ci >= 1:
                         rnode = node.children.pop(ci)
                         if node.children[ci-1].is_leaf():
+                            node.keys.pop(ci-1)
                             node.children[ci-1].keys.extend(rnode.keys)
                             node.children[ci-1].values.extend(rnode.values)
                         else:
                             node.children[ci-1].keys.append(node.keys.pop(ci-1))
                             node.children[ci-1].keys.extend(rnode.keys)
-                            node.children[ci-1].keys.extend(rnode.keys)
-                        node.children[ci-1].children.extend(rnode.children)
+                            node.children[ci-1].children.extend(rnode.children)
                         if node == self.root and not node.keys:
                             self.root = node.children[ci-1]
-                        self.delete(node.children[ci-1], key)
+                        self._delete(node.children[ci-1], key)
                     else:
                         rnode = node.children.pop(ci+1)
                         if node.children[ci].is_leaf():
+                            node.keys.pop(ci)
                             node.children[ci].keys.extend(rnode.keys)
                             node.children[ci].values.extend(rnode.values)
                         else:
                             node.children[ci].keys.append(node.keys.pop(ci))
-                            node.children[ci].values.append(node.values.pop(ci))
                             node.children[ci].keys.extend(rnode.keys)
-                        node.children[ci].children.extend(rnode.children)
+                            node.children[ci].children.extend(rnode.children)
                         if node == self.root and not node.keys:
                             self.root = node.children[ci]
-                        self.delete(node.children[ci], key)
+                        self._delete(node.children[ci], key)
             else:
-                self.delete(node.children[ci], key)
+                self._delete(node.children[ci], key)
 
     def keys(self, kmin = None, kmax = None):
         keys = []
@@ -795,7 +828,7 @@ class BPTree(object):
             return None
 
     def __delitem__(self, k):
-        self.delete(self.root, k)
+        self._delete(self.root, k)
 
 def test_BPTree():
     b = BPTree(2)
@@ -812,6 +845,7 @@ def test_BPTree():
         (4, 'four'),
         (10, 'ten'),
         (11, 'eleven'),
+        (12, 'twelve'),
     ]
     for k, v in kv:
         b[k] = v
@@ -820,7 +854,7 @@ def test_BPTree():
     while n.next:
         print n.next
         n = n.next
-    del b[3]
+    del b[11]
     b.pprint()
     #print b[5.5]
     #print 'min key: ', b.min()
@@ -837,5 +871,5 @@ def test_BPTree():
 #################################### END #######################################
 
 if __name__ == '__main__':
-    test_BTree()
-    #test_BPTree()
+    #test_BTree()
+    test_BPTree()
