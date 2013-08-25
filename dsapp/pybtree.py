@@ -421,9 +421,9 @@ from itertools import izip_longest
 class BPNode(object):
 
     def __init__(self):
-        self.keys = blist()
-        self.values = blist()
-        self.children = blist()
+        self.keys = list()
+        self.values = list()
+        self.children = list()
         self.next = None
 
     def is_leaf(self):
