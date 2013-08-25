@@ -14,7 +14,7 @@ import sqlite3
 from mx.BeeBase import BeeDict
 from btree import BPlusTree
 from BTrees.OOBTree import OOBTree
-from pybtree import BTree
+from pybtree import BTree, BPTree
 
 from bst import BinarySearchTree
 from treap import Treap
@@ -374,7 +374,7 @@ def find_range_with_BTrees(filename = TDATA, tmin = TMIN, tmax = TMAX):
     t2 = time.time()
     print 'Time-consuming  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
 
-def find_range_with_pybtree(filename = TDATA, tmin = TMIN, tmax = TMAX):
+def find_range_with_pybtree_BTree(filename = TDATA, tmin = TMIN, tmax = TMAX):
     """
     ds: B-Tree
     
@@ -383,10 +383,10 @@ def find_range_with_pybtree(filename = TDATA, tmin = TMIN, tmax = TMAX):
      degree: 500
 
       Memory-consuming: 92 MB
-      Time-consuming  : [setup]15.7970 [search]0.0000 [result]34584
+      Time-consuming(list)  : [setup]15.7970 [search]0.0000 [result]34584
       
       Memory-consuming: 100 MB
-      Time-consuming  : [setup]20.4690 [search]0.0000 [result]34584
+      Time-consuming(blist) : [setup]20.4690 [search]0.0000 [result]34584
         
      degree: 1000
       
@@ -394,6 +394,38 @@ def find_range_with_pybtree(filename = TDATA, tmin = TMIN, tmax = TMAX):
       Time-consuming(list)  : [setup]16.4530 [search]0.0000 [result]34584
     """
     dic = BTree(500)
+    
+    t0 = time.time()
+    with open(filename, 'r') as f:
+        for line in f:
+            timestamp, user = line.rsplit('    ', 1)
+            dic[timestamp] = user
+
+    t1 = time.time()
+    result = dic.keys(tmin, tmax)
+    t2 = time.time()
+    print 'Time-consuming  : [setup]%6.4f [search]%6.4f [result]%s' %(t1 - t0, t2 - t1, len(result))
+
+def find_range_with_pybtree_BPTree(filename = TDATA, tmin = TMIN, tmax = TMAX):
+    """
+    ds: B+Tree
+    
+    Profile result:
+    
+     degree: 500
+
+      Memory-consuming: 94 MB
+      Time-consuming(list)  : [setup]17.2970 [search]0.0000 [result]34585
+      
+      Memory-consuming: 98 MB
+      Time-consuming  : [setup]22.1720 [search]0.0000 [result]34585
+        
+     degree: 1000
+      
+      Memory-consuming: 95 MB
+      Time-consuming  : [setup]18.4220 [search]0.0000 [result]34585
+    """
+    dic = BPTree(500)
     
     t0 = time.time()
     with open(filename, 'r') as f:
@@ -448,6 +480,7 @@ if __name__ == '__main__':
     #find_range_with_sqlite3()
     #find_range_with_btree()
     #find_range_with_BTrees()
-    find_range_with_pybtree()
+    find_range_with_pybtree_BTree()
+    #find_range_with_pybtree_BPTree()
     #find_range_with_mxBeeBase()
 

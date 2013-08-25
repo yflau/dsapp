@@ -210,14 +210,12 @@ class BTree(object):
     def _keys(self, node, kmin, kmax, keys):
         """return [k for k in allkeys if kmin <= k <= kmax]"""
         imin = bisect.bisect_left(node.keys, kmin)
-        imax = bisect.bisect_left(node.keys, kmax)
+        imax = bisect.bisect(node.keys, kmax)
 
         if node.children:
             for e in node.children[imin:imax+1]:
                 self._keys(e, kmin, kmax, keys)
         keys.extend(node.keys[imin:imax])
-        if node.keys[imax-1] == kmax:
-            keys.append(kmax)
 
         return keys
 
@@ -232,7 +230,7 @@ class BTree(object):
     def _iterkeys(self, node, kmin, kmax):
         """return [k for k in allkeys if kmin <= k <= kmax]"""
         imin = bisect.bisect_left(node.keys, kmin)
-        imax = bisect.bisect_left(node.keys, kmax)
+        imax = bisect.bisect(node.keys, kmax)
 
         if node.children:
             for e in node.children[imin:imax+1]:
@@ -240,8 +238,6 @@ class BTree(object):
                     yield k
         for i in xrange(imin, imax):
             yield node.keys[i]
-        if node.keys[imax-1] == kmax:
-            yield kmax
 
     def values(self, kmin = None, kmax = None):
         values = []
@@ -256,14 +252,12 @@ class BTree(object):
     def _values(self, node, kmin, kmax, values):
         """return [v for k in allkeys if kmin <= k <= kmax]"""
         imin = bisect.bisect_left(node.keys, kmin)
-        imax = bisect.bisect_left(node.keys, kmax)
+        imax = bisect.bisect(node.keys, kmax)
 
         if node.children:
             for e in node.children[imin:imax+1]:
                 self._values(e, kmin, kmax, values)
         values.extend(node.values[imin:imax])
-        if node.keys[imax-1] == kmax:
-            values.append(node.values[imax-1])
 
         return values
 
@@ -278,7 +272,7 @@ class BTree(object):
     def _itervalues(self, node, kmin, kmax):
         """return [k for k in allkeys if kmin <= k <= kmax]"""
         imin = bisect.bisect_left(node.keys, kmin)
-        imax = bisect.bisect_left(node.keys, kmax)
+        imax = bisect.bisect(node.keys, kmax)
 
         if node.children:
             for e in node.children[imin:imax+1]:
@@ -286,8 +280,6 @@ class BTree(object):
                     yield v
         for i in xrange(imin, imax):
             yield node.values[i]
-        if node.keys[imax-1] == kmax:
-            yield node.values[imax-1]
 
     def items(self, kmin = None, kmax = None):
         items = []
@@ -302,14 +294,12 @@ class BTree(object):
     def _items(self, node, kmin, kmax, items):
         """return [(k,v) for k in allkeys if kmin <= k <= kmax]"""
         imin = bisect.bisect_left(node.keys, kmin)
-        imax = bisect.bisect_left(node.keys, kmax)
+        imax = bisect.bisect(node.keys, kmax)
 
         if node.children:
             for e in node.children[imin:imax+1]:
                 self._items(e, kmin, kmax, items)
         items.extend(zip(node.keys[imin:imax], node.values[imin:imax]))
-        if node.keys[imax-1] == kmax:
-            items.append((kmax, node.values[imax-1]))
 
         return items
 
@@ -324,7 +314,7 @@ class BTree(object):
     def _iteritems(self, node, kmin, kmax):
         """return [k for k in allkeys if kmin <= k <= kmax]"""
         imin = bisect.bisect_left(node.keys, kmin)
-        imax = bisect.bisect_left(node.keys, kmax)
+        imax = bisect.bisect(node.keys, kmax)
 
         if node.children:
             for e in node.children[imin:imax+1]:
@@ -332,8 +322,6 @@ class BTree(object):
                     yield i
         for i in xrange(imin, imax):
             yield (node.keys[i], node.values[i])
-        if node.keys[imax-1] == kmax:
-            yield (kmax, node.values[imax-1])
 
     def min(self):
         node = self.root
@@ -413,13 +401,18 @@ def test_BTree():
     print 'min key: ', b.min()
     print 'max key: ', b.max()
     print 'ceiling: ', b.ceiling(b.root, 9.4)
-    print b.keys()
-    print b.keys(3, 6)
-    print list(b.iterkeys(3, 6))
-    print b.values(3, 6)
-    print list(b.itervalues(3, 6))
-    print b.items(3, 6)
-    print list(b.iteritems(3, 6))
+    print 'keys                :', b.keys()
+    print 'iterkeys()          :', list(b.iterkeys())
+    print 'keys(min, max)      :', b.keys(3.4, 7.9)
+    print 'iterkeys(min, max)  :', list(b.iterkeys(3.4, 7.9))
+    print 'values()            :', b.values()
+    print 'itervalues()        :', list(b.itervalues())
+    print 'values(min, max)    :', b.values(3.4, 7.9)
+    print 'itervalues(min, max):', list(b.itervalues(3.4, 7.9))
+    print 'items()             :', b.items()
+    print 'iteritems()         :', list(b.iteritems())
+    print 'items(min, max)     :', b.items(3.4, 7.9)
+    print 'iteritems(min, max) :', list(b.iteritems(3.4, 7.9))
 
 ################################### B+Tree #####################################
 
@@ -428,9 +421,9 @@ from itertools import izip_longest
 class BPNode(object):
 
     def __init__(self):
-        self.keys = list()
-        self.values = list()
-        self.children = list()
+        self.keys = blist()
+        self.values = blist()
+        self.children = blist()
         self.next = None
 
     def is_leaf(self):
@@ -469,7 +462,10 @@ class BPTree(object):
     def search(self, node, key):
         i = bisect.bisect_left(node.keys, key)
         if i < len(node.keys) and key == node.keys[i]:
-            return (node, i)
+            if node.is_leaf():
+                return (node, i)
+            else:
+                return self.search(node.children[i+1], key)
         if node.is_leaf():
             return (None, None)
         else:
@@ -477,12 +473,20 @@ class BPTree(object):
             return self.search(node.children[i], key)
 
     def ceiling(self, node, key):
-        i = bisect.bisect_left(node.keys, key)
+        i = bisect.bisect(node.keys, key)
         if i < len(node.keys) and key == node.keys[i]:
-            return key
+            if node.is_leaf():
+                return key
+            else:
+                return self.ceiling(node.children[i+1], key)
         if node.is_leaf():
             if i == len(node.keys):
-                return node.keys[-1]
+                kp = node.keys[-1]
+                if node.keys[-1] < key:
+                    if len(node.next.keys) > 0:
+                        return node.next.keys[0]
+                else:
+                    return kp
             return node.keys[i]
         else:
             return self.ceiling(node.children[i], key)
@@ -540,7 +544,7 @@ class BPTree(object):
         self._delete(self.root, key)
 
     def _delete(self, node, key):
-        """chaos!!!"""
+        """fixed!!!"""
         if key in node.keys:
             if node.is_leaf():
                 index = node.keys.index(key)
@@ -568,6 +572,7 @@ class BPTree(object):
                         node.keys.pop(ki)
                         node.children[ki].keys.extend(rnode.keys)
                         node.children[ki].values.extend(rnode.values)
+                        node.children[ki].next = rnode.next
                     else:
                         node.children[ki].keys.append(node.keys.pop(ki))
                         node.children[ki].keys.extend(rnode.keys)
@@ -590,13 +595,6 @@ class BPTree(object):
                         node.keys[ci-1] = node.children[ci-1].keys.pop(-1)
                         node.children[ci].children = node.children[ci-1].children[-1:] + node.children[ci].children
                         node.children[ci-1].children = node.children[ci-1].children[:-1]
-
-                    node.children[ci].keys.insert(0, node.keys[ci-1])
-                    node.children[ci].values.insert(0, node.values[ci-1])
-                    node.keys[ci-1] = node.children[ci-1].keys.pop(-1)
-                    node.values[ci-1] = node.children[ci-1].values.pop(-1)
-                    node.children[ci].children = node.children[ci-1].children[-1:] + node.children[ci].children
-                    node.children[ci-1].children = node.children[ci-1].children[:-1]
                     self._delete(node.children[ci], key)
                 elif ci < len(node.keys) and len(node.children[ci+1].keys) > self._minkeys:
                     if node.children[ci].is_leaf():
@@ -618,6 +616,7 @@ class BPTree(object):
                             node.keys.pop(ci-1)
                             node.children[ci-1].keys.extend(rnode.keys)
                             node.children[ci-1].values.extend(rnode.values)
+                            node.children[ci-1].next = rnode.next
                         else:
                             node.children[ci-1].keys.append(node.keys.pop(ci-1))
                             node.children[ci-1].keys.extend(rnode.keys)
@@ -631,6 +630,7 @@ class BPTree(object):
                             node.keys.pop(ci)
                             node.children[ci].keys.extend(rnode.keys)
                             node.children[ci].values.extend(rnode.values)
+                            node.children[ci].next = rnode.next
                         else:
                             node.children[ci].keys.append(node.keys.pop(ci))
                             node.children[ci].keys.extend(rnode.keys)
@@ -654,14 +654,13 @@ class BPTree(object):
     def _keys(self, node, kmin, kmax, keys):
         """return [k for k in allkeys if kmin <= k <= kmax]"""
         imin = bisect.bisect_left(node.keys, kmin)
-        imax = bisect.bisect_left(node.keys, kmax)
+        imax = bisect.bisect(node.keys, kmax)
 
         if node.children:
             for e in node.children[imin:imax+1]:
                 self._keys(e, kmin, kmax, keys)
-        keys.extend(node.keys[imin:imax])
-        if node.keys[imax-1] == kmax:
-            keys.append(kmax)
+        if node.is_leaf():
+            keys.extend(node.keys[imin:imax])
 
         return keys
 
@@ -676,16 +675,15 @@ class BPTree(object):
     def _iterkeys(self, node, kmin, kmax):
         """return [k for k in allkeys if kmin <= k <= kmax]"""
         imin = bisect.bisect_left(node.keys, kmin)
-        imax = bisect.bisect_left(node.keys, kmax)
+        imax = bisect.bisect(node.keys, kmax)
 
         if node.children:
             for e in node.children[imin:imax+1]:
                 for k in self._iterkeys(e, kmin, kmax):
                     yield k
-        for i in xrange(imin, imax):
-            yield node.keys[i]
-        if node.keys[imax-1] == kmax:
-            yield kmax
+        if node.is_leaf():
+            for i in xrange(imin, imax):
+                yield node.keys[i]
 
     def values(self, kmin = None, kmax = None):
         values = []
@@ -700,14 +698,13 @@ class BPTree(object):
     def _values(self, node, kmin, kmax, values):
         """return [v for k in allkeys if kmin <= k <= kmax]"""
         imin = bisect.bisect_left(node.keys, kmin)
-        imax = bisect.bisect_left(node.keys, kmax)
+        imax = bisect.bisect(node.keys, kmax)
 
         if node.children:
             for e in node.children[imin:imax+1]:
                 self._values(e, kmin, kmax, values)
-        values.extend(node.values[imin:imax])
-        if node.keys[imax-1] == kmax:
-            values.append(node.values[imax-1])
+        if node.is_leaf():
+            values.extend(node.values[imin:imax])
 
         return values
 
@@ -722,16 +719,15 @@ class BPTree(object):
     def _itervalues(self, node, kmin, kmax):
         """return [k for k in allkeys if kmin <= k <= kmax]"""
         imin = bisect.bisect_left(node.keys, kmin)
-        imax = bisect.bisect_left(node.keys, kmax)
+        imax = bisect.bisect(node.keys, kmax)
 
         if node.children:
             for e in node.children[imin:imax+1]:
                 for v in self._itervalues(e, kmin, kmax):
                     yield v
-        for i in xrange(imin, imax):
-            yield node.values[i]
-        if node.keys[imax-1] == kmax:
-            yield node.values[imax-1]
+        if node.is_leaf():
+            for i in xrange(imin, imax):
+                yield node.values[i]
 
     def items(self, kmin = None, kmax = None):
         items = []
@@ -746,14 +742,13 @@ class BPTree(object):
     def _items(self, node, kmin, kmax, items):
         """return [(k,v) for k in allkeys if kmin <= k <= kmax]"""
         imin = bisect.bisect_left(node.keys, kmin)
-        imax = bisect.bisect_left(node.keys, kmax)
+        imax = bisect.bisect(node.keys, kmax)
 
         if node.children:
             for e in node.children[imin:imax+1]:
                 self._items(e, kmin, kmax, items)
-        items.extend(zip(node.keys[imin:imax], node.values[imin:imax]))
-        if node.keys[imax-1] == kmax:
-            items.append((kmax, node.values[imax-1]))
+        if node.is_leaf():
+            items.extend(zip(node.keys[imin:imax], node.values[imin:imax]))
 
         return items
 
@@ -768,16 +763,15 @@ class BPTree(object):
     def _iteritems(self, node, kmin, kmax):
         """return [k for k in allkeys if kmin <= k <= kmax]"""
         imin = bisect.bisect_left(node.keys, kmin)
-        imax = bisect.bisect_left(node.keys, kmax)
+        imax = bisect.bisect(node.keys, kmax)
 
         if node.children:
             for e in node.children[imin:imax+1]:
                 for i in self._iteritems(e, kmin, kmax):
                     yield i
-        for i in xrange(imin, imax):
-            yield (node.keys[i], node.values[i])
-        if node.keys[imax-1] == kmax:
-            yield (kmax, node.values[imax-1])
+        if node.is_leaf():
+            for i in xrange(imin, imax):
+                yield (node.keys[i], node.values[i])
 
     def min(self):
         node = self.root
@@ -845,7 +839,6 @@ def test_BPTree():
         (4, 'four'),
         (10, 'ten'),
         (11, 'eleven'),
-        (12, 'twelve'),
     ]
     for k, v in kv:
         b[k] = v
@@ -855,21 +848,32 @@ def test_BPTree():
         print n.next
         n = n.next
     del b[11]
+    del b[1]
+    del b[2]
+    del b[3]
+    del b[9]
     b.pprint()
-    #print b[5.5]
-    #print 'min key: ', b.min()
-    #print 'max key: ', b.max()
-    #print 'ceiling: ', b.ceiling(b.root, 9.4)
-    #print b.keys()
-    #print b.keys(3, 6)
-    #print list(b.iterkeys(3, 6))
-    #print b.values(3, 6)
-    #print list(b.itervalues(3, 6))
-    #print b.items(3, 6)
-    #print list(b.iteritems(3, 6))
+    del b[4]
+    b.pprint()
+    print b[10]
+    print 'min key: ', b.min()
+    print 'max key: ', b.max()
+    print 'ceiling: ', b.ceiling(b.root, 7.4)
+    print 'keys                :', b.keys()
+    print 'iterkeys()          :', list(b.iterkeys())
+    print 'keys(min, max)      :', b.keys(3.4, 7.9)
+    print 'iterkeys(min, max)  :', list(b.iterkeys(3.4, 7.9))
+    print 'values()            :', b.values()
+    print 'itervalues()        :', list(b.itervalues())
+    print 'values(min, max)    :', b.values(3.4, 7.9)
+    print 'itervalues(min, max):', list(b.itervalues(3.4, 7.9))
+    print 'items()             :', b.items()
+    print 'iteritems()         :', list(b.iteritems())
+    print 'items(min, max)     :', b.items(3.4, 7.9)
+    print 'iteritems(min, max) :', list(b.iteritems(3.4, 7.9))
 
 #################################### END #######################################
 
 if __name__ == '__main__':
-    #test_BTree()
-    test_BPTree()
+    test_BTree()
+    #test_BPTree()
