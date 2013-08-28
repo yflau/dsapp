@@ -11,6 +11,7 @@ String match algorithms.
 reference:
 
 - http://www-igm.univ-mlv.fr/~lecroq/string/
+- Chapter 32 of Introduction to Algorithms(Second Edition)
 
 """
 
@@ -22,7 +23,7 @@ LETTERS = string.ascii_lowercase
 
 ################################################################################
 
-# Based on chapter 32 of Introduction to Algorithms(Second Edition).
+# 32.1
 
 def naive_string_matcher(T, P):
     """O((n-m+1)m)"""
@@ -35,6 +36,8 @@ def naive_string_matcher(T, P):
             print i
     
     return result
+
+# 32.2
 
 def rkhash(P, s, q):
     m = len(P)
@@ -98,6 +101,8 @@ def rabin_karp_multiple(T, PS, sigma, q):
     
     return result
 
+# 32.3
+
 def finite_automation_matcher(T, delta, m):
     result = []
     n = len(T)
@@ -133,6 +138,77 @@ def test_finite_automation_matcher(T, P, sigma = LETTERS):
     delta = compute_transition_function(P, sigma)
     pprint(delta)
     return finite_automation_matcher(T, delta, m)
+
+# 32.4
+
+def compute_prefix_function(P):
+    m = len(P)
+    pi = [0]
+    k = 0
+    
+    for q in range(1, m):
+        while k > 0 and P[k] != P[q]:
+            k = pi[k-1]                # key point
+        if P[k] == P[q]:
+            k += 1
+        pi.append(k)
+    
+    return pi
+
+def KMP_matcher(T, P, pi):
+    result = []
+    n = len(T)
+    m = len(P)
+    q = 0
+    
+    for i in range(n):
+        while q > 0 and P[q] != T[i]:
+            q = pi[q-1]
+        if P[q] == T[i]:
+            q += 1
+        if q == m:
+            result.append(i-m+1)
+            print 'Match @', i-m+1
+            q = pi[q-1]
+    
+    return result
+
+
+import re
+
+def rho(P):
+    """quick and dirty"""
+    m = len(P)
+    pi = []
+    k = 0
+    
+    for i in range(m):
+        p = r'[%s]+' % P[:i+1]
+        maxlen  = max([len(e) for e in re.findall(p, P)])
+        pi.append(maxlen/(i+1))
+    
+    return pi
+
+def repeatition_matcher(T, P, pi):
+    result = []
+    n = len(T)
+    m = len(P)
+    k = 1 + max(pi)
+    q = 0
+    s = 0
+    
+    while s < n - m:
+        if T[s+q] == P[q]:
+            q += 1
+            if q == m:
+                result.append(s)
+                print 'Match @', s
+        if q == m or T[s+q] != P[q]:
+            s += max(1, int(round(q/float(k))))
+            q = 0
+    
+    return result
+
 
 ################################################################################
 
@@ -185,4 +261,18 @@ if __name__ == '__main__':
     mi = test_finite_automation_matcher(T, P, 'ab')
     print mi
     pm(T, P, mi)
+    
+    #T = 'abcdefhijkjkjisijiejm'
+    #P = 'kj'
+    pi = compute_prefix_function(P)
+    print 'pi', pi
+    mi = KMP_matcher(T, P, pi)
+    pm(T, P, mi)
 
+    #T = 'abcdefhijkjkjisijiejm'
+    #P = 'kj'
+    pi = rho(P)
+    print 'pi', pi
+    mi = repeatition_matcher(T, P, pi)
+    pm(T, P, mi)
+    
