@@ -204,7 +204,7 @@ def repeatition_matcher(T, P, pi):
                 result.append(s)
                 print 'Match @', s
         if q == m or T[s+q] != P[q]:
-            s += max(1, int(round(q/float(k))))
+            s += max(1, int(q/k))    # ceil or floor?
             q = 0
     
     return result
