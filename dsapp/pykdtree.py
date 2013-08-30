@@ -123,8 +123,8 @@ def median(a, di = 0):
 
 class KDNode(object):
     
-    def __init__(self):
-        self.data = None
+    def __init__(self, pt = None):
+        self.data = pt
         self.split = 0
         self.left = None
         self.right = None
@@ -166,6 +166,17 @@ class KDTree(object):
     >>> kdt = KDTree(pts)
     >>> kdt.depth
     2
+    >>> kdt.insert((3, 2))
+    (5, 4)
+    >>> kdt = KDTree(k = 2)
+    >>> [kdt.insert(e) for e in [(5,4), (2,3), (9,6), (4,7), (8,1), (7,2)]]
+    [(5, 4), (5, 4), (5, 4), (5, 4), (5, 4), (5, 4)]
+    >>> kdt.depth
+    3
+    >>> kdt.min(0)
+    (2, 3)
+    >>> kdt.min(1)
+    (8, 1)
     >>> kdt.pprint()
     """
     def __init__(self, pts = [], k = 3):
@@ -178,14 +189,14 @@ class KDTree(object):
 
     def init(self, pts, depth = 0):
         if not pts:
-            return
+            return 
         if depth > self.depth:
             self.depth = depth
-        axis = depth % self.k
-        pts, m, i = median(pts, axis)
+        split = depth % self.k
+        pts, m, i = median(pts, split)
         node = KDNode()
         node.data = m
-        node.split = axis
+        node.split = split
         node.left = self.init(pts[:i], depth+1)
         if node.left:
             node.left.parent = node
@@ -195,16 +206,93 @@ class KDTree(object):
         
         return node
 
-    def insert(self, pt):
-        pass
-    
-    def delete(self, pt):
-        pass
-    
-    def nearest(self, k = 1):
-        pass
+    def search(self, pt):
+        return self._search(self.root, pt, 0)
+
+    def _search(self, node, pt, depth = 0):
+        split = depth % self.k
+        if node.data == pt:
+            return node
+        elif pt[split] < node.data[split]:
+            if node.has_left():
+                return self._search(node.left, pt, depth+1)
+            else:
+                return None
+        else:
+            if node.has_right():
+                return self._search(node.right, pt, depth+1)
+            else:
+                return None
 
     def balance(self):
+        pass
+
+    def insert(self, pt):
+        if self.root:
+            return self._insert(pt, self.root, 0)
+        else:
+            self.root = self._insert(pt, self.root, 0)
+            return self.root
+
+    def _insert(self, pt, node, depth = 0):
+        if depth > self.depth:
+            self.depth = depth
+        split = depth % self.k
+        if node is None:
+            node = KDNode(pt)
+            node.split = split
+        elif node.data == pt:
+            # how to handle duplicates?
+            pass
+        elif pt[split] < node.data[split]:
+            node.left = self._insert(pt, node.left, depth+1)
+            if node.left:
+                node.left.parent = node
+        else:
+            node.right = self._insert(pt, node.right, depth+1)
+            if node.right:
+                node.right.parent = node
+        
+        return node
+
+    def delete(self, pt):
+        pass
+
+    def min(self, split):
+        return self._min(self.root, split, 0)
+
+    def _min(self, node, split = 0, depth = 0):
+        if not node:
+            return None
+        elif split == depth:
+            if not node.has_left():
+                return node.data
+            else:
+                return self._min(node.left, split, depth+1)
+        else:
+            lcmin = self._min(node.left, split, depth+1)
+            rcmin = self._min(node.right, split, depth+1)
+            opts = [e for e in [node.data, lcmin, rcmin] if e]
+            
+            return min(opts, key = lambda e: e[split])
+
+    def succ(self, node):
+        succ = None
+        
+        if node.has_right():
+            succ = node.right.min()
+        else:
+            if node.parent:
+                if node.is_left():
+                    succ = node.parent
+                else:
+                    node.parent.right = None
+                    succ = self.succ(node)
+                    node.parent.right = node
+                    
+        return succ
+
+    def nearest(self, k = 1):
         pass
 
     def preorder(self):
