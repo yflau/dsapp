@@ -87,7 +87,7 @@ def quicksort(A, p, r):
     [0, 1, 2, 3, 5, 7, 8, 8, 9]
     """
     if p < r:
-        #q = rpartition(A, p, r)
+        #q = partition(A, p, r)
         q = rpartition(A, p, r)
         quicksort(A, p, q-1)
         quicksort(A, q+1, r)
