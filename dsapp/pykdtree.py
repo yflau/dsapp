@@ -1,8 +1,22 @@
 #! /usr/bin/env python
 # coding: utf-8
 
+"""
+K-Dimnsion Tree.
+
+Reference:
+
+- http://en.wikipedia.org/wiki/K-d_tree
+- http://www.cs.umd.edu/class/spring2002/cmsc420-0401/pbasic.pdf
+- http://www.cs.fsu.edu/~lifeifei/cis5930/kdtree.pdf
+
+"""
+
 import random
 import Queue
+import sys
+
+MAXINT = sys.maxint
 
 ################################################################################
 
@@ -121,6 +135,7 @@ def median(a, di = 0):
 
 ################################################################################
 
+
 class KDNode(object):
     
     def __init__(self, pt = None):
@@ -173,10 +188,24 @@ class KDTree(object):
     [(5, 4), (5, 4), (5, 4), (5, 4), (5, 4), (5, 4)]
     >>> kdt.depth
     3
-    >>> kdt.min(0)
+    >>> kdt.min(kdt.root, 0)
     (2, 3)
-    >>> kdt.min(1)
+    >>> kdt.min(kdt.root, 1)
     (8, 1)
+    >>> kdt.max(kdt.root, 0)
+    (9, 6)
+    >>> kdt.max(kdt.root, 1)
+    (4, 7)
+    >>> kdt.max(kdt.root.right, 1)
+    (9, 6)
+    >>> kdt.search((2, 3))
+    (2, 3)
+    >>> kdt.search((3, 8))
+    >>> kdt.nearest(kdt.root, (2, 3.1))
+    ((2, 3), 0.010000000000000018)
+    >>> kdt.pprint()
+    >>> kdt.delete(kdt.root, (5, 4))
+    (7, 2)
     >>> kdt.pprint()
     """
     def __init__(self, pts = [], k = 3):
@@ -207,20 +236,22 @@ class KDTree(object):
         return node
 
     def search(self, pt):
-        return self._search(self.root, pt, 0)
+        return self._search(self.root, pt)
 
-    def _search(self, node, pt, depth = 0):
-        split = depth % self.k
+    def _search(self, node, pt):
+        if node is None:
+            return None
+        nodesplit = node.split
         if node.data == pt:
             return node
-        elif pt[split] < node.data[split]:
+        elif pt[nodesplit] < node.data[nodesplit]:
             if node.has_left():
-                return self._search(node.left, pt, depth+1)
+                return self._search(node.left, pt)
             else:
                 return None
         else:
             if node.has_right():
-                return self._search(node.right, pt, depth+1)
+                return self._search(node.right, pt)
             else:
                 return None
 
@@ -255,44 +286,105 @@ class KDTree(object):
         
         return node
 
-    def delete(self, pt):
-        pass
-
-    def min(self, split):
-        return self._min(self.root, split, 0)
-
-    def _min(self, node, split = 0, depth = 0):
-        if not node:
+    def delete(self, node, pt):
+        if node is None:
             return None
-        elif split == depth:
-            if not node.has_left():
-                return node.data
-            else:
-                return self._min(node.left, split, depth+1)
+        split = node.split
+        sonsplit = (split + 1) % self.k
+        if pt[split] < node.data[split]:
+            node.left = self.delete(node.left, pt)
+        elif pt[split] > node.data[split]:
+            node.right = self.delete(node.right, pt)
         else:
-            lcmin = self._min(node.left, split, depth+1)
-            rcmin = self._min(node.right, split, depth+1)
-            opts = [e for e in [node.data, lcmin, rcmin] if e]
-            
-            return min(opts, key = lambda e: e[split])
-
-    def succ(self, node):
-        succ = None
-        
-        if node.has_right():
-            succ = node.right.min()
-        else:
-            if node.parent:
+            if node.is_leaf():
                 if node.is_left():
-                    succ = node.parent
+                    node.parent.left = None
                 else:
                     node.parent.right = None
-                    succ = self.succ(node)
-                    node.parent.right = node
-                    
-        return succ
+                return None
+            elif node.has_right():
+                succdata = self.min(node.right, node.split)
+                node.data = succdata
+                node.right = self.delete(node.right, succdata)
+            else:
+                prevdata = self.max(node.left, node.split)
+                node.data = prevdata
+                node.left = self.delete(node.left, prevdata)
+        
+        return node
 
-    def nearest(self, k = 1):
+    def min(self, node, split = 0):
+        if not node:
+            return None
+        else:
+            nodesplit = node.split
+            if split == nodesplit:
+                if not node.has_left():
+                    return node.data
+                else:
+                    return self.min(node.left, split)
+            else:
+                lcmin = self.min(node.left, split)
+                rcmin = self.min(node.right, split)
+                opts = [e for e in [node.data, lcmin, rcmin] if e]
+                
+                return min(opts, key = lambda e: e[split])
+
+    def max(self, node, split = 0):
+        if not node:
+            return None
+        else:
+            nodesplit = node.split
+            if split == nodesplit:
+                if not node.has_right():
+                    return node.data
+                else:
+                    return self.max(node.right, split)
+            else:
+                lcmax = self.max(node.left, split)
+                rcmax = self.max(node.right, split)
+                opts = [e for e in [node.data, lcmax, rcmax] if e]
+                
+                return max(opts, key = lambda e: e[split])
+
+    def nearest(self, node, pt, k = 1):
+        if node is None:
+            return (None, float('inf'))
+        sp = []
+        
+        # generate search path
+        while node:
+            sp.append(node)
+            data = node.data
+            split = node.split
+            if pt[split] < data[split]:
+                node = node.left
+            else:
+                node = node.right
+        cb = sp.pop(-1)
+        data = cb.data
+        bd = sum([pow((data[i]-pt[i]), 2) for i in range(self.k)])
+
+        # backtracing
+        while sp:
+            cn = sp.pop(-1)
+            split = cn.split
+            data = cn.data
+            cd = sum([pow((data[i]-pt[i]), 2) for i in range(self.k)])
+            if abs(pt[split]-data[split]) < cd:
+                if pt[split] <= data[split]:
+                    if cn.right:
+                        sp.append(cn.right)
+                else:
+                    if cn.left:
+                        sp.append(cn.left)
+            if cd < bd:
+                cb = cn
+                bd = cd
+                    
+        return cb, bd
+
+    def search_range(self):
         pass
 
     def preorder(self):
@@ -393,3 +485,6 @@ class KDTree(object):
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
+    #pts = [(2,3), (5,4), (9,6), (4,7), (8,1), (7,2)]
+    #kdt = KDTree(pts)
+    #print kdt.nearest(kdt.root, (2, 3.1))
