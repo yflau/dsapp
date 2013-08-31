@@ -9,14 +9,11 @@ Reference:
 - http://en.wikipedia.org/wiki/K-d_tree
 - http://www.cs.umd.edu/class/spring2002/cmsc420-0401/pbasic.pdf
 - http://www.cs.fsu.edu/~lifeifei/cis5930/kdtree.pdf
-
+- http://underthehood.blog.51cto.com/2531780/687160
 """
 
 import random
 import Queue
-import sys
-
-MAXINT = sys.maxint
 
 ################################################################################
 
@@ -32,13 +29,17 @@ def variance(a):
     n = len(a)
     mean = float(sum(a))/n
     variance = float(sum([pow((e-mean), 2) for e in a]))/n
-    
+
     return variance
+
+def distance(pt1, pt2):
+    k = len(pt1)
+    return sum([pow((pt1[i]-pt2[i]), 2) for i in range(k)])
 
 def impartition(A, p = None, r = None, di = 0, pivot = None):
     """
     Inplace randomized select element as pivot for multiple dimension array.
-    
+
     >>> A = [(9,8), (3,0), (7,1), (2,5), (8,8), (5,2), (1,7), (0,3), (8,9)]
     >>> impartition(A, 0, 8, 0, 3)
     2
@@ -71,13 +72,13 @@ def impartition(A, p = None, r = None, di = 0, pivot = None):
     tmp = A[pivot]
     A[pivot] = A[i]
     A[i] = tmp
-    
+
     return i
 
 def imqselect(a, di = 0, k = None, p = None, r = None):
     """
     Inplace quick select algorithm for multiple dimension array.
-    
+
     >>> A = [(9,8), (3,0), (7,1), (2,5), (8,8), (5,2), (1,7), (0,3), (5,9)]
     >>> tmp = imqselect(A)
     >>> tmp[0][0]
@@ -106,9 +107,9 @@ def imqselect(a, di = 0, k = None, p = None, r = None):
 def median(a, di = 0):
     """
     Find the median of a and place the median at its position.
-    
+
     @param di : dimension i for multiple dimension array.
-    
+
     >>> A = [(9,8), (3,0), (7,1), (2,5), (8,8), (5,2), (1,7), (0,3), (5,9)]
     >>> a, m , i = median(A)
     >>> i
@@ -124,20 +125,20 @@ def median(a, di = 0):
     """
     n = len(a)
     m, i = imqselect(a, di)
-    
+
     for j in xrange(i+1, n):
         if a[j][di] == m[di]:
             i += 1
         else:
             break
-    
+
     return a, m, i
 
 ################################################################################
 
 
 class KDNode(object):
-    
+
     def __init__(self, pt = None):
         self.data = pt
         self.split = 0
@@ -147,7 +148,7 @@ class KDNode(object):
 
     def has_left(self):
         return self.left
-    
+
     def has_right(self):
         return self.right
 
@@ -169,6 +170,18 @@ class KDNode(object):
     def has_both_children(self):
         return self.right and self.left
 
+    @property
+    def depth(self):
+        """depth of node, root is 0."""
+        depth = 0
+        parent = self.parent
+        
+        while parent is not None:
+            depth += 1
+            parent = parent.parent
+        
+        return depth
+
     def __str__(self):
         return str(self.data)
 
@@ -179,6 +192,18 @@ class KDTree(object):
     """
     >>> pts = [(2,3), (5,4), (9,6), (4,7), (8,1), (7,2)]
     >>> kdt = KDTree(pts)
+    >>> kdt.pprint()  # doctest: +SKIP
+                (5, 4)
+         /                 \
+    (2, 3)                  (7, 2)
+         \                 /     \
+          (4, 7)      (8, 1)      (9, 6)
+    >>> node = kdt.search((2, 3))
+    >>> node.parent
+    (5, 4)
+    >>> node.depth
+    1
+    >>> node.parent.parent
     >>> kdt.depth
     2
     >>> kdt.insert((3, 2))
@@ -198,15 +223,17 @@ class KDTree(object):
     (4, 7)
     >>> kdt.max(kdt.root.right, 1)
     (9, 6)
-    >>> kdt.search((2, 3))
+    >>> node = kdt.search((2, 3))
+    >>> node
     (2, 3)
+    >>> node.parent
+    (5, 4)
+    >>> node.parent.parent
     >>> kdt.search((3, 8))
-    >>> kdt.nearest(kdt.root, (2, 3.1))
+    >>> kdt.nearest((2, 3.1))
     ((2, 3), 0.010000000000000018)
-    >>> kdt.pprint()
     >>> kdt.delete(kdt.root, (5, 4))
     (7, 2)
-    >>> kdt.pprint()
     """
     def __init__(self, pts = [], k = 3):
         if pts:
@@ -218,7 +245,7 @@ class KDTree(object):
 
     def init(self, pts, depth = 0):
         if not pts:
-            return 
+            return
         if depth > self.depth:
             self.depth = depth
         split = depth % self.k
@@ -232,7 +259,7 @@ class KDTree(object):
         node.right = self.init(pts[i+1:], depth+1)
         if node.right:
             node.right.parent = node
-        
+
         return node
 
     def search(self, pt):
@@ -283,7 +310,7 @@ class KDTree(object):
             node.right = self._insert(pt, node.right, depth+1)
             if node.right:
                 node.right.parent = node
-        
+
         return node
 
     def delete(self, node, pt):
@@ -310,7 +337,7 @@ class KDTree(object):
                 prevdata = self.max(node.left, node.split)
                 node.data = prevdata
                 node.left = self.delete(node.left, prevdata)
-        
+
         return node
 
     def min(self, node, split = 0):
@@ -327,7 +354,7 @@ class KDTree(object):
                 lcmin = self.min(node.left, split)
                 rcmin = self.min(node.right, split)
                 opts = [e for e in [node.data, lcmin, rcmin] if e]
-                
+
                 return min(opts, key = lambda e: e[split])
 
     def max(self, node, split = 0):
@@ -344,14 +371,32 @@ class KDTree(object):
                 lcmax = self.max(node.left, split)
                 rcmax = self.max(node.right, split)
                 opts = [e for e in [node.data, lcmax, rcmax] if e]
-                
+
                 return max(opts, key = lambda e: e[split])
 
-    def nearest(self, node, pt, k = 1):
+    def nearest(self, pt, k = 1):
+        """        
+        >>> kdt = KDTree(k = 2)
+        >>> [kdt.insert(e) for e in [(7,2), (5,4), (2,3), (9,6), (4,7), (8,1)]]
+        [(7, 2), (7, 2), (7, 2), (7, 2), (7, 2), (7, 2)]
+        >>> kdt.nearest((2.1, 3.1))
+        ((2, 3), 0.020000000000000035)
+        >>> kdt.nearest((2, 4.5))
+        ((2, 3), 2.25)
+        >>> kdt.pprint() # doctest: +SKIP
+                          (7, 2)
+                   /                 \
+              (5, 4)                  (9, 6)
+             /     \                 /
+        (2, 3)      (4, 7)      (8, 1)
+        """
+        return self._nearest(self.root, pt, k)
+
+    def _nearest(self, node, pt, k = 1):
         if node is None:
             return (None, float('inf'))
         sp = []
-        
+
         # generate search path
         while node:
             sp.append(node)
@@ -361,35 +406,39 @@ class KDTree(object):
                 node = node.left
             else:
                 node = node.right
-        cb = sp.pop(-1)
-        data = cb.data
-        bd = sum([pow((data[i]-pt[i]), 2) for i in range(self.k)])
+        nearest = sp.pop(-1)
+        dnearest = distance(nearest.data, pt)
 
-        # backtracing
+        # backtracking
         while sp:
-            cn = sp.pop(-1)
-            split = cn.split
-            data = cn.data
-            cd = sum([pow((data[i]-pt[i]), 2) for i in range(self.k)])
-            if abs(pt[split]-data[split]) < cd:
-                if pt[split] <= data[split]:
-                    if cn.right:
-                        sp.append(cn.right)
-                else:
-                    if cn.left:
-                        sp.append(cn.left)
-            if cd < bd:
-                cb = cn
-                bd = cd
-                    
-        return cb, bd
+            back = sp.pop(-1)
+            data = back.data
+            dback = distance(data, pt)
+            if back.is_leaf():
+                if dback < dnearest:
+                    nearest = back
+                    dnearest = dback
+            else:
+                split = back.split
+                if abs(pt[split]-data[split]) < dnearest:
+                    if dback < dnearest:
+                        nearest = back
+                        dnearest = dback
+                    if pt[split] <= data[split]:
+                        if back.right:
+                            sp.append(back.right)
+                    else:
+                        if back.left:
+                            sp.append(back.left)
 
-    def search_range(self):
+        return nearest, dnearest
+
+    def search_range(self, node, range):
         pass
 
     def preorder(self):
         return self._preorder(self.root)
-    
+
     def _preorder(self, node):
         nodes = []
         nodes.append(node)
@@ -397,12 +446,12 @@ class KDTree(object):
             nodes.extend(self._preorder(node.left))
         if node.has_right():
             nodes.extend(self._preorder(node.right))
-        
+
         return nodes
 
     def inorder(self):
         return self._inorder(self.root)
-    
+
     def _inorder(self, node):
         nodes = []
         if node.has_left():
@@ -410,12 +459,12 @@ class KDTree(object):
         nodes.append(node)
         if node.has_right():
             nodes.extend(self._inorder(node.right))
-        
+
         return nodes
 
     def postorder(self):
         return self._postorder(self.root)
-    
+
     def _postorder(self, node):
         nodes = []
         if node.has_left():
@@ -423,7 +472,7 @@ class KDTree(object):
         if node.has_right():
             nodes.extend(self._postorder(node.right))
         nodes.append(node)
-        
+
         return nodes
 
     def bft(self, node, level = 1):
@@ -485,6 +534,4 @@ class KDTree(object):
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
-    #pts = [(2,3), (5,4), (9,6), (4,7), (8,1), (7,2)]
-    #kdt = KDTree(pts)
-    #print kdt.nearest(kdt.root, (2, 3.1))
+
