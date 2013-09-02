@@ -687,12 +687,6 @@ class KDTree(object):
 
 
 if __name__ == '__main__':
-    #import doctest
-    #doctest.testmod()
-    pts = [(2,3), (5,4), (2, 3), (9,6), (4,7), (8,1), (7,2), (2, 3)]
-    #print pts, m , i
-    #pts = zip(range(13), range(13))
-    kdt = KDTree(pts)
-    kdt.pprint()
-    print kdt.depth
+    import doctest
+    doctest.testmod()
 
