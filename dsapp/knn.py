@@ -113,11 +113,21 @@ def knn_with_pykdtree(data, pt, k = 1):
     
     k = 3
     
-     memory consuming: 277 MB
-     construct time: 59.3589999676
-     search time:  0.0
-     time consuming: 59.3589999676
-     [((1000, 999), 1.0), ((1001, 999), 1.4142135623730951), ((994, 1000), 6.0)]
+     median(quick select):
+        
+      memory consuming: 263 MB
+      construct time: 59.3589999676
+      search time:  0.0
+      time consuming: 59.3589999676
+      [((1000, 999), 1.0), ((1001, 999), 1.4142135623730951), ((994, 1000), 6.0)]
+     
+     median_with_sort:
+     
+      memory consuming: 261 MB
+      construct time: 51.7349998951
+      search time:  0.0
+      time consuming: 51.7349998951
+      [((1000, 999), 1.0), ((1001, 999), 1.4142135623730951), ((994, 1000), 6.0)]
     """
     t0 = time.time()
     kdt = pykdtree.KDTree(data)

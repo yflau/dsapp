@@ -141,6 +141,20 @@ def median(a, di = 0):
 
     return a, m, i
 
+def median_with_sort(a, di = 0):
+    n = len(a)
+    a = sorted(a, key=lambda e: e[di])
+    i = n/2
+    m = a[i]
+
+    for j in xrange(i+1, n):
+        if a[j][di] == m[di]:
+            i += 1
+        else:
+            break
+
+    return a, m, i
+
 ################################################################################
 
 
@@ -254,7 +268,8 @@ class KDTree(object):
         if depth > self.depth:
             self.depth = depth
         split = depth % self.k
-        pts, m, i = median(pts, split)
+        pts, m, i = median(pts, split)  # slower than sort, why?
+        #pts, m, i = median_with_sort(pts, split)
         node = KDNode()
         node.data = m
         node.split = split
