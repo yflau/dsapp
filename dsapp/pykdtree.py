@@ -10,6 +10,7 @@ Reference:
 - http://www.cs.umd.edu/class/spring2002/cmsc420-0401/pbasic.pdf
 - http://www.cs.fsu.edu/~lifeifei/cis5930/kdtree.pdf
 - http://underthehood.blog.51cto.com/2531780/687160
+- http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.28.6468&rep=rep1&type=pdf
 """
 
 import random
@@ -166,9 +167,9 @@ def median_with_sort(a, di = 0):
 
 class KDNode(object):
 
-    def __init__(self, pt = None):
+    def __init__(self, pt = None, split = 0):
         self.data = pt
-        self.split = 0
+        self.split = split
         self.left = None
         self.right = None
         self.parent = None
@@ -556,6 +557,7 @@ class KDTree(object):
 
     def search_range(self, pt, radius):
         """
+        Find all points within distance radius of point(s) x.
         
         >>> kdt = KDTree(zip(range(10), range(10)))
         >>> kdt.search_range((1, 1), 2)
@@ -590,6 +592,8 @@ class KDTree(object):
                 self._search_range(further, pt, radius, result)
         
         return result
+
+    #### some common methods
 
     def preorder(self):
         return self._preorder(self.root)
