@@ -96,12 +96,12 @@ def imqselect(a, di = 0, k = None, p = None, r = None):
     ((2, 5), 4)
     """
     n = len(a)
-    if k is None:
-        k = (n+1)/2
     if p is None:
         p = 0
     if r is None:
         r = n - 1
+    if k is None:
+        k = (r-p+2)/2
     pivot = impartition(a, p, r, di)+1
     n1 = pivot-p
     if k < n1:
@@ -111,7 +111,7 @@ def imqselect(a, di = 0, k = None, p = None, r = None):
     else:
         return a[pivot-1], pivot - 1
 
-def median(a, di = 0):
+def median(a, di = 0, p = None, r = None):
     """
     Find the median of a and place the median at its position.
 
@@ -129,11 +129,17 @@ def median(a, di = 0):
     4
     >>> A[i+1][1] > m[1]
     True
+    >>> A = [(2,3), (5,4), (2, 3), (9,6), (4,7), (8,1), (7,2)]
+    >>> a, m, i = median(A, 0, 0, 3)
     """
     n = len(a)
-    m, i = imqselect(a, di)
+    if p is None:
+        p = 0
+    if r is None:
+        r = n - 1
+    m, i = imqselect(a, di, p = p, r = r)
 
-    for j in xrange(i+1, n):
+    for j in xrange(i+1, r+1):
         if a[j][di] == m[di]:
             i += 1
         else:
@@ -261,6 +267,7 @@ class KDTree(object):
             self.k = k
         self.depth = 0
         self.root = self.init(pts)
+        #self.root = self.init_inplace(pts)
 
     def init(self, pts, depth = 0):
         if not pts:
@@ -279,6 +286,33 @@ class KDTree(object):
         node.right = self.init(pts[i+1:], depth+1)
         if node.right:
             node.right.parent = node
+
+        return node
+
+    def init_inplace(self, pts, depth = 0, p = None, r = None):
+        """Memory is also 260 MB, same as init method."""
+        if not pts:
+            return
+        if depth > self.depth:
+            self.depth = depth
+        split = depth % self.k
+        n = len(pts)
+        if p is None:
+            p = 0
+        if r is None:
+            r = n - 1
+        pts, m, i = median(pts, split, p, r)
+        node = KDNode()
+        node.data = m
+        node.split = split
+        if p <= i-1:
+            node.left = self.init_inplace(pts, depth+1, p, i-1)
+            if node.left:
+                node.left.parent = node
+        if i+1 <= r:
+            node.right = self.init_inplace(pts, depth+1, i+1, r)
+            if node.right:
+                node.right.parent = node
 
         return node
 
@@ -520,8 +554,42 @@ class KDTree(object):
 
         return result
 
-    def search_range(self, node, range):
-        pass
+    def search_range(self, pt, radius):
+        """
+        
+        >>> kdt = KDTree(zip(range(10), range(10)))
+        >>> kdt.search_range((1, 1), 2)
+        [((0, 0), 1.4142135623730951), ((1, 1), 0.0), ((2, 2), 1.4142135623730951)]
+        >>> kdt.pprint() # doctest: +SKIP
+        """
+        return self._search_range(self.root, pt, radius, [])
+
+    def _search_range(self, node, pt, radius, result = []):
+        if node is None:
+            return (None, float('inf'))
+
+        data = node.data
+        split = node.split
+        dist = distance(data, pt)
+
+        if node.is_leaf():
+            if pow(dist, 0.5) <= radius:
+                result.append((node, pow(dist, 0.5)))
+        else:
+            if pt[split] <= data[split]:
+                nearer = node.left
+                further = node.right
+            else:
+                nearer = node.right
+                further = node.left
+            
+            self._search_range(nearer, pt, radius, result)
+            if pow(dist, 0.5) <= radius:
+                result.append((node, pow(dist, 0.5)))
+            if abs(pt[split]-data[split]) <= radius:
+                self._search_range(further, pt, radius, result)
+        
+        return result
 
     def preorder(self):
         return self._preorder(self.root)
@@ -619,6 +687,12 @@ class KDTree(object):
 
 
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
+    #import doctest
+    #doctest.testmod()
+    pts = [(2,3), (5,4), (2, 3), (9,6), (4,7), (8,1), (7,2), (2, 3)]
+    #print pts, m , i
+    #pts = zip(range(13), range(13))
+    kdt = KDTree(pts)
+    kdt.pprint()
+    print kdt.depth
 
