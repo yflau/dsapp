@@ -153,4 +153,8 @@ if __name__ == '__main__':
     #print knn_with_scipy_KDTree(data, [[1000, 1000]], 3)
     print knn_with_pykdtree(data, [1000, 1000], 3)
     #print knn_with_heap(data, [1000, 1000], 3)
+    
+    #data = zip(range(10000), range(10000))
+    #print knn_with_scipy_KDTree(data, [[1, 1]], 3)
+    #print knn_with_pykdtree(data, [1, 1], 10)
 

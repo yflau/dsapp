@@ -16,6 +16,8 @@ import random
 import Queue
 from heapq import heappush, heappop, heappushpop
 
+INF = float('inf')
+
 ################################################################################
 
 def variance(a):
@@ -379,13 +381,15 @@ class KDTree(object):
 
     def nearest(self, pt, k = 1):
         """
+        Recursive version of NN search.
+        
         >>> kdt = KDTree(k = 2)
         >>> [kdt.insert(e) for e in [(7,2), (5,4), (2,3), (9,6), (4,7), (8,1)]]
         [(7, 2), (7, 2), (7, 2), (7, 2), (7, 2), (7, 2)]
         >>> kdt.nearest((2.1, 3.1))
-        ((2, 3), 0.14142135623730964)
+        [((2, 3), 0.14142135623730964)]
         >>> kdt.nearest((2, 4.5))
-        ((2, 3), 1.5)
+        [((2, 3), 1.5)]
         >>> kdt.pprint() # doctest: +SKIP
                           (7, 2)
                    /                 \
@@ -393,23 +397,82 @@ class KDTree(object):
              /     \                 /
         (2, 3)      (4, 7)      (8, 1)
         """
-        return self._nearest(self.root, pt, k)
+        result = self._nearest(self.root, pt, k, [])
+        result = [heappop(result) for i in range(len(result))][::-1]
+        result = [(e[1], pow(abs(e[0]), 0.5)) for e in result]
+        
+        return result
 
-    def _nearest(self, node, pt, k = 1):
+    def _nearest(self, node, pt, k = 1, result = []):
+        if node is None:
+            return (None, float('inf'))
+        
+        data = node.data
+        split = node.split
+        dist = distance(data, pt)
+
+        if node.is_leaf():
+            if len(result) < k:
+                heappush(result, (-dist, node))
+            else:
+                heappushpop(result, (-dist, node))
+        else:
+            if pt[split] <= data[split]:
+                nearer = node.left
+                further = node.right
+            else:
+                nearer = node.right
+                further = node.left
+    
+            self._nearest(nearer, pt, k, result)
+            if len(result) < k:
+                heappush(result, (-dist, node))
+            else:
+                heappushpop(result, (-dist, node))
+            dmax = -result[0][0] if result else INF
+            if abs(pt[split]-data[split]) <= pow(dmax, 0.5):
+                self._nearest(further, pt, k, result)
+        
+        return result
+
+    def inearest(self, pt, k = 1):
+        """
+        Iteration version of NN search.
+        
+        >>> kdt = KDTree(k = 2)
+        >>> [kdt.insert(e) for e in [(7,2), (5,4), (2,3), (9,6), (4,7), (8,1)]]
+        [(7, 2), (7, 2), (7, 2), (7, 2), (7, 2), (7, 2)]
+        >>> kdt.inearest((2.1, 3.1))
+        [((2, 3), 0.14142135623730964)]
+        >>> kdt.inearest((2, 4.5))
+        [((2, 3), 1.5)]
+        >>> kdt.pprint() # doctest: +SKIP
+                          (7, 2)
+                   /                 \
+              (5, 4)                  (9, 6)
+             /     \                 /
+        (2, 3)      (4, 7)      (8, 1)
+        """
+        return self._inearest(self.root, pt, k)
+
+    def _inearest(self, node, pt, k = 1):
         if node is None:
             return (None, float('inf'))
         result = []
-        sp = []
 
-        # generate search path
-        while node:
-            sp.append(node)
-            data = node.data
-            split = node.split
-            if pt[split] <= data[split]:
-                node = node.left
-            else:
-                node = node.right
+        def generate_sp(node):
+            sp = []
+            while node:
+                sp.append(node)
+                data = node.data
+                split = node.split
+                if pt[split] <= data[split]:
+                    node = node.left
+                else:
+                    node = node.right
+            return sp
+        
+        sp = generate_sp(node)
         nearest = sp.pop(-1)
         dnearest = distance(nearest.data, pt)
         heappush(result, (-dnearest, nearest))
@@ -423,92 +486,24 @@ class KDTree(object):
                 if len(result) < k:
                     heappush(result, (-dback, back))
                 else:
-                    heappushpop(result, (-dback, back))
+                    if dback < -result[0][0]:
+                        heappushpop(result, (-dback, back))
             else:
                 split = back.split
-                dnearest = -result[0][0]
-                if abs(pt[split]-data[split]) < pow(dnearest, 0.5):
-                    if len(result) < k:
-                        heappush(result, (-dback, back))
-                    else:
-                        heappushpop(result, (-dback, back))
+                if len(result) < k:
+                    heappush(result, (-dback, back))
+                else:
+                    heappushpop(result, (-dback, back))
+                if abs(pt[split]-data[split]) <= pow(-result[0][0], 0.5):
                     if pt[split] <= data[split]:
-                        if back.right:
-                            sp.append(back.right)
+                        sp.extend(generate_sp(back.right))
                     else:
-                        if back.left:
-                            sp.append(back.left)
+                        sp.extend(generate_sp(back.left))
 
         result = [heappop(result) for i in range(len(result))][::-1]
         result = [(e[1], pow(abs(e[0]), 0.5)) for e in result]
 
         return result
-
-    def knn(self, pt, k = 1):
-        """
-        >>> kdt = KDTree(k = 2)
-        >>> [kdt.insert(e) for e in [(7,2), (5,4), (2,3), (9,6), (4,7), (8,1)]]
-        [(7, 2), (7, 2), (7, 2), (7, 2), (7, 2), (7, 2)]
-        >>> kdt.knn((2.1, 3.1), 2)
-        ([((2, 3), 0.14142135623730964), ((5, 4), 3.0364452901377956)], 6)
-        >>> kdt.knn((2, 4.5), 2)
-        ([((2, 3), 1.5), ((5, 4), 3.0413812651491097)], 6)
-        >>> kdt.pprint() # doctest: +SKIP
-                          (7, 2)
-                   /                 \
-              (5, 4)                  (9, 6)
-             /     \                 /
-        (2, 3)      (4, 7)      (8, 1)
-        """
-        return self._knn(self.root, pt, k)
-
-    def _knn(self, node, pt, k = 1):
-        """wrong!!! how to do?"""
-        if node is None:
-            return (None, float('inf'))
-        result = []
-        sp = []
-        visited = set()
-
-        # generate search path
-        while node:
-            sp.append(node)
-            data = node.data
-            split = node.split
-            if pt[split] < data[split]:
-                node = node.left
-            else:
-                node = node.right
-        nearest = sp.pop(-1)
-        visited.add(nearest)
-        dnearest = distance(nearest.data, pt)
-        heappush(result, (-dnearest, nearest))
-
-        # backtracking
-        while sp:
-            back = sp.pop(-1)
-            visited.add(back)
-            data = back.data
-            dback = distance(data, pt)
-            if back.is_leaf():
-                if len(result) < k:
-                    heappush(result, (-dback, back))
-                else:
-                    heappushpop(result, (-dback, back))
-            else:
-                if len(result) < k:
-                    heappush(result, (-dback, back))
-                else:
-                    heappushpop(result, (-dback, back))
-                if back.left and back.left not in visited:
-                    sp.append(back.left)
-                if back.right and back.right not in visited:
-                    sp.append(back.right)
-
-        result = [heappop(result) for i in range(len(result))][::-1]
-        result = [(e[1], pow(abs(e[0]), 0.5)) for e in result]
-
-        return result, len(visited)
 
     def search_range(self, node, range):
         pass
