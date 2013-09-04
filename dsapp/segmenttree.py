@@ -8,6 +8,7 @@ Segment tree and some examples.
 Reference:
     
 - http://www.notonlysuccess.com/index.php/segment-tree-complete/
+- http://wenku.baidu.com/view/e55eb4a48762caaedd33d4fc.html
 
 """
 
@@ -79,7 +80,7 @@ class Node(object):
         return depth
 
     def __str__(self):
-        return '%s,%s:%s' % (self.start, self.end, self.data.get('value', 0))
+        return '[%s,%s]' % (self.start, self.end)
 
     __repr__ = __str__
 
@@ -166,41 +167,85 @@ class SegmentTree(object):
 
         return result
 
-    def query_sum(self, start, end):
+    def query_sum_add(self, start, end):
         """
         Can we mix the set and add methods?
         
         >>> st = SegmentTree(range(4))
-        >>> st.set(1, 3, 2)
-        >>> st.add(1, 3, 1)
-        >>> st.query_sum(1, 3)
+        >>> st.add(1, 3, 2)
+        >>> st.query_sum_add(1, 3)
         6
-        >>> st.query_sum(2, 3)
+        >>> st.query_sum_add(2, 3)
         4
-        >>> st.query_sum(0, 1)
+        >>> st.query_sum_add(0, 1)
         2
-        >>> st.query_sum(0, 0)
+        >>> st.query_sum_add(0, 0)
         0
-        >>> st.query_sum(1, 1)
+        >>> st.query_sum_add(1, 1)
         2
-        >>> st.query_sum(2, 2)
+        >>> st.query_sum_add(2, 2)
         2
         >>> st.pprint() # doctest: +SKIP
         """
-        return self._query_sum(self.root, start, end)
+        return self._query_sum_add(self.root, start, end)
 
-    def _query_sum(self, node, start, end):
+    def _query_sum_add(self, node, start, end):
         result = 0
         
         if node is None:
             return
             
         if start <= node.start and node.end <= end:
-            if node.is_same:
-                result += node.data.get('value', 0) * (node.end - node.start + 1)
-            else:
-                result += node.data.get('sum', 0) + \
-                          node.data.get('delta', 0) * (node.end - node.start + 1)
+            result += node.data.get('sum', 0) + \
+                      node.data.get('delta', 0) * (node.end - node.start + 1)
+        else:
+            node.data['sum'] = node.data.get('sum', 0) + \
+                               node.data.get('delta', 0) * \
+                               (node.end - node.start + 1)
+            node.left.data['delta'] = node.left.data.get('delta', 0) + \
+                                      node.data.get('delta', 0)
+            node.right.data['delta'] = node.right.data.get('delta', 0) + \
+                                       node.data.get('delta', 0)
+            node.data['delta'] = 0
+            mid = (node.start + node.end)/2
+            if start <= mid:
+                result += self._query_sum_add(node.left, start, end)
+            if end > mid:
+                result += self._query_sum_add(node.right, start, end)
+        
+        return result
+
+    def query_sum_set(self, start, end):
+        """
+        Can we mix the set and add methods?
+        
+        >>> st = SegmentTree(range(4))
+        >>> st.set(1, 3, 2)
+        >>> st.query_sum_set(1, 3)
+        6
+        >>> st.query_sum_set(2, 3)
+        4
+        >>> st.query_sum_set(0, 1)
+        2
+        >>> st.query_sum_set(0, 0)
+        0
+        >>> st.query_sum_set(1, 1)
+        2
+        >>> st.query_sum_set(2, 2)
+        2
+        >>> st.pprint() # doctest: +SKIP
+        """
+        return self._query_sum_set(self.root, start, end)
+
+    def _query_sum_set(self, node, start, end):
+        result = 0
+        
+        if node is None:
+            return
+            
+        if start <= node.start and node.end <= end:
+            #if node.is_same:
+            result += node.calcsum()
         else:
             if node.is_same:
                 if node.has_left():
@@ -210,20 +255,11 @@ class SegmentTree(object):
                     node.right.data['value'] = node.data.get('value', 0)
                     node.right.is_same = True
                 node.is_same = False
-            else:
-                node.data['sum'] = node.data.get('sum', 0) + \
-                                   node.data.get('delta', 0) * \
-                                   (node.end - node.start + 1)
-                node.left.data['delta'] = node.left.data.get('delta', 0) + \
-                                          node.data.get('delta', 0)
-                node.right.data['delta'] = node.right.data.get('delta', 0) + \
-                                           node.data.get('delta', 0)
-                node.data['delta'] = 0
             mid = (node.start + node.end)/2
             if start <= mid:
-                result += self._query_sum(node.left, start, end)
+                result += self._query_sum_set(node.left, start, end)
             if end > mid:
-                result += self._query_sum(node.right, start, end)
+                result += self._query_sum_set(node.right, start, end)
         
         return result
 
@@ -298,17 +334,17 @@ class SegmentTree(object):
         """
         >>> st = SegmentTree(range(4))
         >>> st.add(1, 3, 2)
-        >>> st.query_sum(1, 3)
+        >>> st.query_sum_add(1, 3)
         6
-        >>> st.query_sum(2, 3)
+        >>> st.query_sum_add(2, 3)
         4
-        >>> st.query_sum(0, 1)
+        >>> st.query_sum_add(0, 1)
         2
-        >>> st.query_sum(0, 0)
+        >>> st.query_sum_add(0, 0)
         0
-        >>> st.query_sum(1, 1)
+        >>> st.query_sum_add(1, 1)
         2
-        >>> st.query_sum(2, 2)
+        >>> st.query_sum_add(2, 2)
         2
         >>> st.pprint() #doctest: +SKIP
                                 [0,3]d:0
@@ -351,17 +387,17 @@ class SegmentTree(object):
         """
         >>> st = SegmentTree(range(4))
         >>> st.set(1, 3, 2)
-        >>> st.query_sum(1, 3)
+        >>> st.query_sum_set(1, 3)
         6
-        >>> st.query_sum(2, 3)
+        >>> st.query_sum_set(2, 3)
         4
-        >>> st.query_sum(0, 1)
+        >>> st.query_sum_set(0, 1)
         2
-        >>> st.query_sum(0, 0)
+        >>> st.query_sum_set(0, 0)
         0
-        >>> st.query_sum(1, 1)
+        >>> st.query_sum_set(1, 1)
         2
-        >>> st.query_sum(2, 2)
+        >>> st.query_sum_set(2, 2)
         2
         >>> st.pprint() # doctest: +SKIP
                                 [0,3]v:0
@@ -994,8 +1030,8 @@ class poj2528(SegmentTree):
         else:
             self.push_down(node)
             mid = (node.start + node.end)/2
-            # start <= mid leads to dead loop, how to do?
-            if start < mid:
+            # start <= mid leads to dead loop, how to do? insert middle in interval which range > 1
+            if start <= mid:
                 self.update(start, end, value, node.left)
             if end > mid:
                 self.update(start, end, value, node.right)
@@ -1035,6 +1071,10 @@ class poj2528(SegmentTree):
                     points.add(a)
                     points.add(b)
                     line = f.readline().strip()
+                points = list(points)
+                for i in range(1, len(points))[::-1]:
+                    if points[i] > points[i-1] + 1:
+                        points.append((points[i-1] + 1))
                 st = poj2528(points)
                 f.seek(pos)
                 line = f.readline().strip()
@@ -1060,6 +1100,65 @@ class poj2528(SegmentTree):
         pass
 
 ################################################################################
+
+class poj3225(SegmentTree):
+    """
+    Help with Intervals.
+    
+    TYPE
+    ----
+    
+      - UPDATE: Interval replacement, interval XOR.
+      - QUERY : Hash query
+
+    """
+
+    name = 'Help with Intervals'
+    url = 'http://poj.org/problem?id=3225'
+    labels = 'SegmentTree, segment tree'
+
+
+################################################################################
+
+class poj3667(SegmentTree):
+    """
+    Hotel.
+    
+    TYPE
+    ----
+    
+      - UPDATE: Interval replacement, interval XOR.
+      - QUERY : Breakpoints leftmost query
+
+    """
+
+    name = 'Hotel'
+    url = 'http://poj.org/problem?id=3667'
+    labels = 'SegmentTree, segment tree'
+
+################################################################################
+
+
+class hdu1542(SegmentTree):
+    """
+    Atlantis.
+    
+    TYPE
+    ----
+    
+    Scan line problem.
+    
+      - UPDATE: Interval increase and decrease.
+      - QUERY : Root node query
+
+    """
+
+    name = 'Atlantis'
+    url = 'http://acm.hdu.edu.cn/showproblem.php?pid=1542'
+    labels = 'SegmentTree, segment tree'
+
+################################################################################
+
 
 if __name__ == '__main__':
     import doctest
