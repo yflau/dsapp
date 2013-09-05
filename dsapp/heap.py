@@ -108,7 +108,82 @@ def max_heap_insert(A, key):
     """
     A.append(float('-inf'))
     heap_increase_key(A, len(A)-1, key)
+
+################################################################################
+
+from collections import deque
+from math import log
+
+def inorder_heap(A, i = 0, heap_size = None):
+    """
+    Iterate a heap inorder.
     
+    >>> A = [16, 14, 8, 10, 9, 3, 7, 2, 4, 1]
+    >>> list(inorder_heap(A))
+    [2, 10, 4, 14, 1, 9, 16, 3, 8, 7]
+    """
+    result = deque()
+    if heap_size is None:
+        heap_size = len(A)
+    if i >= heap_size:
+        return []
+    if 0 <= i < heap_size:
+        result.append(A[i])
+    left = inorder_heap(A, 2*i+1, heap_size)
+    left.reverse()
+    result.extendleft(left)
+    result.extend(inorder_heap(A, 2*i+2, heap_size))
+    
+    return result
+
+def heap_pprint(A):
+    """
+    Print a heap as a binary tree.
+    
+    >>> A = [16, 14, 8, 10, 9, 3, 7, 2, 4, 1]
+    >>> heap_pprint(A) # doctest: +SKIP
+            16
+         /    \
+        14     8
+      /   \   /\
+     10    9  3 7
+    / \   /
+    2  4  1
+    """
+    nodes = list(inorder_heap(A))
+    length = [len(str(e)) for e in nodes]
+    levels = int(log(len(A) + 1, 2))
+    for level in range(levels + 1):
+        levelnodes = A[pow(2, level)-1 : pow(2, level+1)-1]
+        starts = []
+        ends = []
+        branches = []
+        for node in levelnodes:
+            oindex = A.index(node)
+            index = nodes.index(node)
+            start = sum([len(str(e)) for e in nodes[:index]])
+            end = start + len(str(node))
+            starts.append(start)
+            ends.append(end)
+            if oindex == 0:
+                if level > 0:
+                    print 'error node: ', node
+            if oindex % 2 == 1:
+                branches.append((end-1, '/'))
+            elif oindex % 2 == 0:
+                branches.append((start-1, '\\'))
+            else:
+                pass
+        if level > 0:
+            spaces = [branches[0][0]]
+            spaces.extend([branches[k+1][0] - branches[k][0] - 1 for k in range(len(branches)-1)])
+            pair = ['%s%s' % (' '*spaces[m], branches[m][1]) for m in range(len(branches))]
+            print ''.join(pair)
+        spaces = [starts[0]]
+        spaces.extend([starts[i] - ends[i-1] for i in range(1, len(starts))])
+        pair = ['%s%s' % (' '*spaces[j], levelnodes[j]) for j in range(len(spaces))]
+        print ''.join(pair)
+
 
 if __name__ == '__main__':
     import doctest
