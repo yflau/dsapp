@@ -7,6 +7,7 @@ Max-heap implemention.
 Reference:
 
 - Introduction to Algorithms.
+- http://cs.anu.edu.au/~Alistair.Rendell/Teaching/apac_comp3600/
 
 """
 
@@ -114,12 +115,12 @@ def max_heap_insert(A, key):
 from collections import deque
 from math import log
 
-def inorder_heap(A, i = 0, heap_size = None):
+def heap_inorder(A, i = 0, heap_size = None):
     """
     Iterate a heap inorder.
     
     >>> A = [16, 14, 8, 10, 9, 3, 7, 2, 4, 1]
-    >>> list(inorder_heap(A))
+    >>> list(heap_inorder(A))
     [2, 10, 4, 14, 1, 9, 16, 3, 8, 7]
     """
     result = deque()
@@ -129,10 +130,10 @@ def inorder_heap(A, i = 0, heap_size = None):
         return []
     if 0 <= i < heap_size:
         result.append(A[i])
-    left = inorder_heap(A, 2*i+1, heap_size)
+    left = heap_inorder(A, 2*i+1, heap_size)
     left.reverse()
     result.extendleft(left)
-    result.extend(inorder_heap(A, 2*i+2, heap_size))
+    result.extend(heap_inorder(A, 2*i+2, heap_size))
     
     return result
 
@@ -150,7 +151,7 @@ def heap_pprint(A):
     / \   /
     2  4  1
     """
-    nodes = list(inorder_heap(A))
+    nodes = list(heap_inorder(A))
     length = [len(str(e)) for e in nodes]
     levels = int(log(len(A) + 1, 2))
     for level in range(levels + 1):
