@@ -1,4 +1,4 @@
 dsapp
 =====
 
-data structure, algorithms and its applicaitons
+data structure, algorithms and applicaitons
