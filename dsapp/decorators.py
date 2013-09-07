@@ -119,6 +119,14 @@ def timethis(func):
     
     return wrap
 
+################################################################################
+
+
+
+################################################################################
+
+### Below are some experimental code, do not use!!!
+
 try:
     from guppy import hpy
 except:
