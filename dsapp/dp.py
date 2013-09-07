@@ -13,6 +13,7 @@ Reference:
 """
 
 import sys
+from itertools import chain
 from pprint import pprint
 
 INF = float('inf')
@@ -68,7 +69,7 @@ def matchain(r):
 
 ################################################################################
 
-# 1. Longest sub-sequence
+### 1. Longest sub-sequence
 
 def lss(A, type = '<'):
     """
@@ -117,39 +118,94 @@ def lss(A, type = '<'):
     
     return DP, N
 
-
-def lss_post(DP, N, type = 'max', A = []):
+def lss_list(DP, N, m = None):
     """
-    type : ['max', 'sum', 'list']
+    List all index sequence of longest sub-sequences.
     
     >>> A = [9, 8, 7, 6, 2, 6, 5]
     >>> DP, N = lss(A, '>')
-    >>> DP
-    [1, 2, 3, 4, 5, 4, 5]
-    >>> N
-    [1, 1, 1, 1, 1, 1, 1]
-    >>> lss_post(DP, N, type = 'sum')
-    2
+    >>> lss_list(DP, N)
+    [[0, 1, 2, 5, 6], [0, 1, 2, 3, 4]]
+    >>> A = [9, 7, 5, 8, 5, 1]
+    >>> DP, N = lss(A, '>')
+    >>> lss_list(DP, N)
+    [[0, 3, 4, 5], [0, 1, 4, 5]]
+    >>> A = [1,16,17,18,20,10,22,22,8,17,26,14,3,24,8,1,2,21,2,17]
+    >>> DP, N = lss(A, '>')
+    >>> result = lss_list(DP, N)
+    >>> pprint(result) # doctest: +ELLIPSIS
+    [[7, 9, 11, 14, 18],
+     [6, 9, 11, 14, 18],
+    ...
+     [1, 5, 8, 12, 15]]
     """
-    if type == 'max':
-        return max(DP)
-    elif type == 'sum':
+    result = []
+    L = len(DP)
+    if m is None:
         m = max(DP)
-        indexes = [i for i,e in enumerate(DP) if e == m]
-        nc = sum([N[i] for i in indexes])
-        return nc
-    elif type == 'list':
-        result = []
-        m = max(DP)
-        r = list(reversed(DP))
-        for i in range(m, 0, -1):
-            index = r.index(i)
-            result.append(len(r) - index - 1)
-            r = r[index+1:]
-        result.reverse()
+    DP.reverse()
+    N.reverse()
+    indexes = [i for i,e in enumerate(DP) if e == m]
+    cache = {}
+    
+    def find_prev(index):
+        if index in cache or DP[index] == 1:
+            return
+        dp = DP[index]
+        num = N[index]
+        pis = [i for i,e in enumerate(DP) if e == dp-1 and i > index]
+        n = k = 0
+        while n < num:
+            cache.setdefault(index, []).append(pis[k])
+            n = sum([N[e] for e in cache[index]])
+            k += 1
+        for e in cache[index]:
+            find_prev(e)
+    
+    for i in indexes:
+        find_prev(i)
+        ii = [[i]]
+        iitem = [[i]*N[i]]
+        
+        for j in range(m-1, 0, -1):
+            tmp = []
+            for k in ii[-1]:
+                tmp.extend(cache[k])
+            flat = [[e]*N[e] for e in tmp]
+            iitem.append(list(chain(*flat)))
+            ii.append(tmp)
             
-        return result
+        result.extend([map(lambda e: L-e-1, e)[::-1] for e in zip(*iitem)])
+        
+    return result
 
+def lss_pprint(A, indexlist, width = 3):
+    """
+    Pretty print longest sub-sequences.
+    
+    >>> A = [9, 7, 5, 8, 5, 1]
+    >>> DP, N = lss(A, '>')
+    >>> result = lss_list(DP, N)
+    >>> lss_pprint(A, result) # doctest: +NORMALIZE_WHITESPACE
+    9  7  5  8  5  1
+    9  -  -  8  5  1
+    9  7  -  -  5  1
+    >>> A = [1,16,17,18,20,10,22,22,8,17,26,14,3,24,8,1,2,21,2,17]
+    >>> DP, N = lss(A, '>')
+    >>> result = lss_list(DP, N)
+    >>> lss_pprint(A, result) # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    1  16 17 18 20 10 22 22 8  17 26 14 3  24 8  1  2  21 2  17
+    -  -  -  -  -  -  -  22 -  17 -  14 -  -  8  -  -  -  2  -
+    -  -  -  -  -  -  22 -  -  17 -  14 -  -  8  -  -  -  2  -
+    ...
+    -  16 -  -  -  10 -  -  8  -  -  -  3  -  -  1  -  -  -  -
+    """
+    print ''.join([str(e).ljust(width) for e in A])
+    for e in indexlist:
+        tmp = [a if i in e else '-' for i,a in enumerate(A) ]
+        print ''.join([str(e).ljust(width) for e in tmp])
+
+### examples for Longest sub-sequence
 
 def missile1(A):
     """
@@ -159,13 +215,16 @@ def missile1(A):
     >>> DP, N = lss(A, '>=')
     >>> DP
     [1, 2, 3, 2, 3, 4, 5, 6]
+    >>> N
+    [1, 1, 1, 1, 1, 1, 1, 1]
     >>> max(DP)
     6
-    >>> lss_post(DP, N, 'list')
-    [0, 3, 4, 5, 6, 7]
+    >>> lss_list(DP, N)
+    [[0, 3, 4, 5, 6, 7]]
     """
     n = len(A)
     DP = [1 for i in range(n)]
+    
     for i in range(n):
         for j in range(i):
             if A[j] >= A[i] and DP[j] + 1 > DP[i]:
@@ -189,6 +248,7 @@ def missile2(A):
     """
     n = len(A)
     DP = [1 for i in range(n)]
+    
     for i in range(n):
         for j in range(i):
             if A[j] < A[i] and DP[j] + 1 > DP[i]:
@@ -281,8 +341,11 @@ def buylow(A):
     >>> N
     [1, 1, 2, 2, 1, 1, 1, 1, 1, 2, 1, 1]
     >>> DP, N = lss(A, '>')
-    >>> lss_post(DP, N, 'list')
-    [1, 4, 7, 9]
+    >>> result = lss_list(DP, N)
+    >>> lss_pprint(A, result) # doctest: +NORMALIZE_WHITESPACE
+    68 69 54 64 68 64 70 67 78 62 98 87
+    -  69 -  -  68 -  -  67 -  62 -  -
+    -  69 -  -  68 64 -  -  -  62 -  -
     """
     DP, N = lss(A, '>')
     m = max(DP)
@@ -296,9 +359,3 @@ def buylow(A):
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
-    #A = [9, 8, 7, 6, 2, 6, 5]
-    #DP, N = lss(A, '>')
-    #print DP
-    #print N
-
-
