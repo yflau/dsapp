@@ -16,6 +16,8 @@ import sys
 from itertools import chain
 from pprint import pprint
 
+from functools32 import lru_cache
+
 INF = float('inf')
 
 
@@ -256,6 +258,35 @@ def missile2(A):
     
     return max(DP)
 
+def rmissile(A):
+    """
+    Recursive method.
+    
+    f(Inf, 0) = max(f(h0, 1) + 1, f(Inf, 1))
+    f(Inf, n-1) = 1
+    
+    f(i, h) stands for max missiles can be contepted from the i-th missile
+    with given height h.
+    
+    >>> A = [389, 207, 155, 300, 299, 170, 158, 65]
+    >>> rmissile(A)
+    6
+    """
+    n = len(A)
+    
+    def f(h, i = n-1):
+        if i == n-1:
+            if h >= A[i]:
+                return 1
+            else:
+                return 0
+        else:
+            if h >= A[i]:
+                return max(f(A[i], i+1)+1, f(h, i+1))
+            else:
+                return f(h, i+1)
+    
+    return f(INF, 0)
 
 def missile(h):
     """
@@ -361,10 +392,47 @@ def ships():
 
 ### 2. Knapsack problem
 
+def pack(V, O):
+    """
+    NOIP 2001.
+    
+    State transition equation:
 
+     f(24, 0) = 8
+     f(24, 1) = max(f(24, 0), f(24-3, 0)+3)
+     
+     f(v, i) stands for the most volume can be accommodated by Knapsack(v) for 
+     the first i objects.
+    
+    >>> O = [8, 3, 12, 7, 9, 7]
+    >>> pack(24, O)
+    [8, 11, 23, 23, 24, 24]
+    """
+    n = len(O)
+    DP = [0 for e in O]
+    
+    #@lru_cache
+    def f(v, i = 0):
+        if i == 0:
+            if v >= O[i]:
+                return O[i]
+            else:
+                return 0
+        else:
+            if v >= O[i]:
+                return max(f(v, i-1), f(v-O[i], i-1)+O[i])
+            else:
+                return f(v, i-1)
+    
+    for i in range(n):
+        DP[i] = f(V, i)
+    
+    return DP
 
 ################################################################################
 
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
+    #O = [8, 3, 12, 7, 9, 7]
+    #print f(24, O, 1)
