@@ -4,7 +4,7 @@
 """
 Greedy algorithm.
 
-Referenc:
+Reference:
     
 - Introduction to Algorithms.
 
@@ -14,6 +14,8 @@ import heapq
 
 
 ################################################################################
+
+### activity selector problem
 
 def activity_selector_dp(S, F):
     """
@@ -38,16 +40,22 @@ def activity_selector_dp(S, F):
     [1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4]
     >>> max(DP)
     4
+    >>> S = [ 6, 8,  0, 12, 3, 5, 1, 3,  8,  2, 5]
+    >>> F = [10, 11, 6, 14, 8, 9, 4, 5, 12, 13, 7]
+    >>> DP = activity_selector_dp(S, F)
+    >>> DP
+    [1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4]
     """
+    S, F = zip(*sorted(zip(S, F), key=lambda e:e[1]))   # ensure F in ascending order
+    
     n = len(S)
     DP = [1 for i in range(n)]
     
     for i in range(1, n):
         DP[i] = max(DP[:i])
         for j in range(i):
-            if F[j] <= S[i]:
-                if DP[j] + 1 > DP[i]:
-                    DP[i] = DP[j] + 1
+            if F[j] <= S[i] and DP[j] + 1 > DP[i]:
+                DP[i] = DP[j] + 1
     
     return DP
 
