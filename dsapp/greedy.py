@@ -4,10 +4,52 @@
 """
 Greedy algorithm.
 
+Referenc:
+    
+- Introduction to Algorithms.
+
 """
 
 import heapq
 
+
+################################################################################
+
+def activity_selector_dp(S, F):
+    """
+    Activity selector problem with dynamic programming method, maybe it's 
+    different from the method of the book.
+    
+    f(0) = 1
+    f(1) = max(f(0), f(0)+1)   if 0 is compatible with 1
+           max(f(0))           if 1 is not compatibl with 2
+    f(i) = max(f(i-1), f(j)+1) with 0 <= j < i, and j is compatible with i
+    
+    f(i) stands for the max compatible number of the first i activities.
+    
+    Notice: The recursive formula established based on the F is sorted 
+    in ascending order, for if i is compatible with j, then i is compatible with
+    all 0 <= k < j activities.
+    
+    >>> S = [1, 3, 0, 5, 3, 5,  6,  8,  8,  2, 12]
+    >>> F = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    >>> DP = activity_selector_dp(S, F)
+    >>> DP
+    [1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4]
+    >>> max(DP)
+    4
+    """
+    n = len(S)
+    DP = [1 for i in range(n)]
+    
+    for i in range(1, n):
+        DP[i] = max(DP[:i])
+        for j in range(i):
+            if F[j] <= S[i]:
+                if DP[j] + 1 > DP[i]:
+                    DP[i] = DP[j] + 1
+    
+    return DP
 
 ################################################################################
 
