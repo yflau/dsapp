@@ -14,9 +14,10 @@ Reference:
 
 import sys
 from itertools import chain
+import random
 from pprint import pprint
 
-from functools32 import lru_cache
+#from functools32 import lru_cache
 
 INF = float('inf')
 
@@ -262,6 +263,8 @@ def rmissile(A):
     """
     Recursive method.
     
+    Note: RuntimeError when length great than 1000 default.
+    
     f(Inf, 0) = max(f(h0, 1) + 1, f(Inf, 1))
     f(Inf, n-1) = 1
     
@@ -271,6 +274,10 @@ def rmissile(A):
     >>> A = [389, 207, 155, 300, 299, 170, 158, 65]
     >>> rmissile(A)
     6
+    >>> A = [random.randint(100, 10000) for i in range(1000)]
+    >>> rmissile(A) # doctest: +SKIP
+    ...
+    RuntimeError: maximum recursion depth exceeded
     """
     n = len(A)
     
@@ -400,13 +407,62 @@ def pack(V, O):
 
      f(24, 0) = 8
      f(24, 1) = max(f(24, 0), f(24-3, 0)+3)
-     
+     f(24, 2) = max(f(24, 1), f(24-12, 1)+12)
+              = max(f(24, 1), f(24-12, 0)+12, f(24-12-3, 0)+12+3)
+     f(24, 3) = max(f(24, 2), f(24-7, 2)+7)
+              = max(f(24, 2), f(24-7, 1)+7, f(24-7-12, 1)+7+12)
+              = max(f(24, 2), f(24-7, 0)+7, f(24-7-3, 0)+7+3, 
+                              f(24-7-12, 0)+7+12, f(24-7-12-3, 0)+7+12+3)
+     f(24, 4) = max(f(24, 3), f(24-9, 3)+9)
+              = max(f(24, 3), f(24-9, 2)+9, f(24-9-7, 2)+9+7)
+              = max(f(24, 3), f(24-9, 1)+9, f(24-9-12, 1)+9+12, 
+                              f(24-9-7, 1)+9+7) 
+                              # no f(24-9-7-12, 1)+9+7+12) for 24-9-7 < 12
+              = max(f(24, 3), f(24-9, 0)+9, f(24-9-3, 0)+3,
+                              f(24-9-12, 0)+9+12, f(24-9-12-3)+9+12+3,
+                              f(24-9-7, 0)+9+7, f(24-9-7-3, 0)+9+7+3)
+
      f(v, i) stands for the most volume can be accommodated by Knapsack(v) for 
      the first i objects.
     
     >>> O = [8, 3, 12, 7, 9, 7]
     >>> pack(24, O)
     [8, 11, 23, 23, 24, 24]
+    >>> O = [3, 16, 27, 23, 12, 7, 9, 10, 16, 23, 21, 13, 6, 20, 19, 11]
+    >>> pack(40, O)
+    [3, 19, 30, 39, 39, 39, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40]
+    """
+    n = len(O)
+    DP = [0 for e in O]
+
+    dp0 = lambda x: O[0] if x >= O[0] else 0
+    DP[0] = dp0(V)
+    
+    for i in range(1, n):
+        v = V
+        DP[i] = DP[i-1]
+        for j in range(i, 0, -1):
+            v = V-O[i]
+            if dp0(v)+(V-v) >= DP[i]:
+                DP[i] = dp0(v)+(V-v)
+            for k in range(j-1, 0, -1):
+                if v >= O[k]:
+                    v -= O[k]
+                    if dp0(v)+(V-v) >= DP[i]:
+                        DP[i] = dp0(v)+(V-v)
+
+    return DP
+
+def rpack(V, O):
+    """
+    Recursion method.
+    
+    >>> O = [8, 3, 12, 7, 9, 7]
+    >>> rpack(24, O)
+    [8, 11, 23, 23, 24, 24]
+    >>> O = [3, 16, 27, 23, 12, 7, 9, 10, 16, 23, 21, 13, 6, 20, 19, 11]
+    >>> rpack(40, O)
+    [3, 19, 30, 39, 39, 39, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40]
     """
     n = len(O)
     DP = [0 for e in O]
@@ -426,13 +482,19 @@ def pack(V, O):
     
     for i in range(n):
         DP[i] = f(V, i)
-    
+        
     return DP
+
+
+def weight(A):
+    """
+    NOIP 1996.
+    """
+    pass
 
 ################################################################################
 
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
-    #O = [8, 3, 12, 7, 9, 7]
-    #print f(24, O, 1)
+
