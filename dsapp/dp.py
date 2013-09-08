@@ -10,6 +10,8 @@ Reference:
 - http://wenku.baidu.com/view/f8ccea120b4e767f5acfce83.html
 - http://blog.csdn.net/dingyaguang117/article/details/5836918
 
+Problem-solving skill: Recursion + Induction
+
 """
 
 import sys
@@ -491,6 +493,40 @@ def weight(A):
     NOIP 1996.
     """
     pass
+
+################################################################################
+
+def numtri(A):
+    """
+    IOI94.
+    
+        7
+       3 8
+      8 1 0
+     2 7 4 4
+    4 5 2 6 5
+    >>> A = [[7], [3, 8], [8, 1, 0], [2, 7, 4, 4], [4, 5, 2, 6, 5]]
+    >>> DP = numtri(A)
+    >>> DP
+    [[7], [10, 15], [18, 16, 15], [20, 25, 20, 19], [24, 30, 27, 26, 24]]
+    >>> max(DP[-1])
+    30
+    """
+    DP = [[i for i in e] for e in A]
+    n = len(A)
+    
+    for i in range(1, n):
+        m = len(A[i])
+        for j in range(m):
+            if j == 0:
+                DP[i][j] = DP[i][j]+DP[i-1][0]
+            elif j == m-1:
+                DP[i][j] = DP[i][j]+DP[i-1][m-2]
+            else:
+                DP[i][j] = max(DP[i][j]+DP[i-1][j-1], DP[i][j]+DP[i-1][j])
+    
+    return DP
+
 
 ################################################################################
 
