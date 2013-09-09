@@ -17,7 +17,7 @@ import heapq
 
 ### activity selector problem
 
-def activity_selector_dp(S, F):
+def dp_activity_selector(S, F):
     """
     Activity selector problem with dynamic programming method, maybe it's 
     different from the method of the book.
@@ -35,29 +35,89 @@ def activity_selector_dp(S, F):
     
     >>> S = [1, 3, 0, 5, 3, 5,  6,  8,  8,  2, 12]
     >>> F = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-    >>> DP = activity_selector_dp(S, F)
+    >>> DP, R = dp_activity_selector(S, F)
     >>> DP
     [1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4]
+    >>> R
+    [(1, 4), (5, 7), (8, 11), (12, 14)]
     >>> max(DP)
+    4
+    >>> len(R)
     4
     >>> S = [ 6, 8,  0, 12, 3, 5, 1, 3,  8,  2, 5]
     >>> F = [10, 11, 6, 14, 8, 9, 4, 5, 12, 13, 7]
-    >>> DP = activity_selector_dp(S, F)
-    >>> DP
-    [1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4]
+    >>> DP, R = dp_activity_selector(S, F)
+    >>> R
+    [(1, 4), (5, 7), (8, 11), (12, 14)]
     """
     S, F = zip(*sorted(zip(S, F), key=lambda e:e[1]))   # ensure F in ascending order
     
     n = len(S)
     DP = [1 for i in range(n)]
+    R = [(S[0], F[0])]
     
     for i in range(1, n):
         DP[i] = max(DP[:i])
         for j in range(i):
             if F[j] <= S[i] and DP[j] + 1 > DP[i]:
                 DP[i] = DP[j] + 1
+                R.append((S[i], F[i]))
     
-    return DP
+    return DP, R
+
+def recursive_activity_selector(S, F, L, i = 0, j = None):
+    """
+    >>> S = [1, 3, 0, 5, 3, 5,  6,  8,  8,  2, 12]
+    >>> F = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    >>> recursive_activity_selector(S, F, len(S))
+    [(1, 4), (5, 7), (8, 11), (12, 14)]
+    >>> S = [1, 3, 0, 5, 3, 5,  6,  8,  8,  2, 12]
+    >>> F = [8, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    >>> recursive_activity_selector(S, F, len(S))
+    [(3, 5), (5, 7), (8, 11), (12, 14)]
+    """
+    if j is None:
+        j = len(S)
+    
+    R = []
+    if j-i == L:
+        S, F = zip(*sorted(zip(S, F), key=lambda e:e[1]))
+        R.append((S[0], F[0]))
+        
+    m = i+1
+    while m < j and S[m] < F[i]:
+        m += 1
+        
+    if m < j:
+        R.append((S[m], F[m]))
+        R.extend(recursive_activity_selector(S, F, L, m, j))
+        return R
+    else:
+        return R
+
+def greedy_activity_selector(S, F):
+    """
+    >>> S = [1, 3, 0, 5, 3, 5,  6,  8,  8,  2, 12]
+    >>> F = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    >>> greedy_activity_selector(S, F)
+    [(1, 4), (5, 7), (8, 11), (12, 14)]
+    >>> S = [1, 3, 0, 5, 3, 5,  6,  8,  8,  2, 12]
+    >>> F = [8, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    >>> greedy_activity_selector(S, F)
+    [(3, 5), (5, 7), (8, 11), (12, 14)]
+    """
+    S, F = zip(*sorted(zip(S, F), key=lambda e:e[1]))
+    
+    n = len(S)
+    R = [(S[0], F[0])]
+    i = 0
+    
+    for m in range(1, n):
+        if S[m] >= F[i]:
+            R.append((S[m], F[m]))
+            i = m
+    
+    return R
 
 ################################################################################
 
@@ -191,4 +251,3 @@ def huffman_decode(T, s):
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
-
