@@ -12,6 +12,8 @@ Reference:
 
 import heapq
 
+INF = float('inf')
+
 
 ################################################################################
 
@@ -247,6 +249,32 @@ def huffman_decode(T, s):
 
 ################################################################################
 
+def delnum(I, k):
+    """
+    Delete number problem, choose high bit first.
+    
+    >>> I = 5934625578
+    >>> delnum(I, 6)
+    2557
+    >>> I = '2358984379837'
+    >>> delnum(I, 8)
+    23337
+    """
+    R = []
+    A = list(str(I))
+    n = len(A)
+    s = 0
+    e = s + k + 1
+    for j in range(n-k):
+        im, vm = min([(i, v) for i,v in enumerate(A[s:e])], key=lambda t:t[1])
+        R.append(vm)
+        s += im+1
+        e += 1
+        
+    return int(''.join(R))
+
+
+################################################################################
 
 if __name__ == '__main__':
     import doctest
