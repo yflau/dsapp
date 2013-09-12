@@ -3,7 +3,7 @@
 
 """
 
-Leftest tree.
+Leftist tree.
 
 Reference:
 
@@ -16,6 +16,7 @@ from collections import deque
 
 
 def merge(A, B):
+    """A, B are LeftistNode instances."""
     if not A:
         return B
     if not B:
@@ -213,12 +214,53 @@ class LeftistTree(object):
         (50:0)      (99:0)     (25:0)
         """
         t = self.root.key
+        self.root.left.parent = None
+        self.root.right.parent = None
         self.root = self.root.left.merge(self.root.right)
 
         return t
         
     def delete(self, x):
-        pass
+        """
+        >>> t =LeftistTree()
+        >>> kvs = [(1,), (99,), (25,), (7,), (20,), (50,), (5,), (10,), (15,)]
+        >>> t.build(kvs)
+        >>> t.pprint() # doctest: +SKIP
+                         (1:2)
+                  /                            \
+              (5:1)                             (7:1)
+             /    \                      /          \
+        (10:0)     (15:0)           (20:1)           (25:0)
+                                   /     \
+                              (50:0)      (99:0)
+        >>> node = t.root.left
+        >>> t.delete(node)
+        >>> t.pprint() # doctest: +SKIP
+                                     (1:1)
+                              /                \
+                          (7:1)                 (10:0)
+                   /          \                /
+              (20:1)           (25:0)     (15:0)
+             /     \
+        (50:0)      (99:0)
+        """
+        q = x.parent
+        p = x.left.merge(x.right)
+        p.parent = q
+        if q and q.left is x:
+            q.left = p
+        if q and q.right is x:
+            q.right = p
+        while q:
+            if q.left.dist < q.right.dist:
+                tmp = q.left
+                q.left = q.right
+                q.right = tmp
+            if q.dist == q.right.dist + 1:
+                break
+            q.dist = q.right.dist + 1
+            p = q
+            q = q.parent
 
     ### methods should inherited from BaseTree class
     def inorder(self):
