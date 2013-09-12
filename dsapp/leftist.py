@@ -16,13 +16,17 @@ from collections import deque
 
 
 def merge(A, B):
-    """A, B are LeftistNode instances."""
+    """
+    Merge two LeftistNodes and return a new LeftistNode.
+    
+    Note: A, B are LeftistNode instances.
+    """
     if not A:
         return B
     if not B:
         return A
         
-    if B.key < A.key:
+    if B.key < A.key:   # change to maximum heap: if B.key > A.key
         tmp = A
         A = B
         B = tmp
@@ -108,6 +112,9 @@ class LeftistTree(object):
     
     def build(self, q):
         """
+        Build a LeftistTree from a list of kv pairs which 
+        stands for LeftistNode key and value.
+        
         >>> t =LeftistTree()
         >>> t.build([(1,), (2,), (3,), (4,), (5,), (6,)])
         >>> t.pprint() # doctest: +SKIP
@@ -132,6 +139,8 @@ class LeftistTree(object):
     
     def merge(self, T):
         """
+        Merge two LeftistTree, T is an instance of LeftistTree not LeftistNode.
+        
         >>> t1 =LeftistTree()
         >>> kvs = [(1,), (99,), (25,), (7,), (20,), (50,), (5,), (10,), (15,)]
         >>> t1.build(kvs)
@@ -164,6 +173,8 @@ class LeftistTree(object):
         
     def insert(self, x):
         """
+        Insert node x into the tree.
+        
         >>> t =LeftistTree()
         >>> kvs = [(1,), (99,), (25,), (7,), (20,), (50,), (5,), (10,), (15,)]
         >>> t.build(kvs)
@@ -191,6 +202,8 @@ class LeftistTree(object):
     
     def pop(self):
         """
+        Extract min.
+        
         >>> t =LeftistTree()
         >>> kvs = [(1,), (99,), (25,), (7,), (20,), (50,), (5,), (10,), (15,)]
         >>> t.build(kvs)
@@ -222,6 +235,8 @@ class LeftistTree(object):
         
     def delete(self, x):
         """
+        Delete node x which is an LeftistNode instance.
+        
         >>> t =LeftistTree()
         >>> kvs = [(1,), (99,), (25,), (7,), (20,), (50,), (5,), (10,), (15,)]
         >>> t.build(kvs)
