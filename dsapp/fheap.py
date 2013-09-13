@@ -12,6 +12,7 @@ Reference:
 
 import Queue
 import math
+import heapq
 
 INF = float('inf')
 
@@ -38,6 +39,10 @@ class FibonacciNode(object):
             son.left = self.child.left
             self.child.left.right = son
             self.child.left = son
+        else:
+            son.right = son
+            son.left = son
+            
         self.child = son
         son.parent = self
         self.degree += 1
@@ -144,8 +149,9 @@ class FibonacciNode(object):
 
 def binomial_tree(kvs = []):
     """
-    Construct a Binomial tree from a list of k,v pairs.
-
+    Construct a Binomial tree from a list of k,v pairs, the sequence of the list
+    is from right column to left column, each of which from top to bottom.
+    
     >>> kvs = [(10,)]
     >>> node = binomial_tree(kvs)
     >>> list(node.bft())
@@ -158,6 +164,7 @@ def binomial_tree(kvs = []):
     |<11>  <17>| -38-
      -27-
     """
+    #heapq.heapify(kvs)
     n = len(kvs)
     if n == 0:
         return None
@@ -252,33 +259,6 @@ class FibonacciHeap(object):
         
         return result
     
-    def join_root(self, x):
-        """
-        >>> H = FibonacciHeap()
-        >>> H.build([
-        ...     [(10,)], 
-        ...     [(1,), (25,), (12,), (18,)], 
-        ...     [(6,), (29,), (14,), (38,), (8,), (17,), (11,), (27,)]
-        ... ])
-        >>> kvs = [(8,), (15,)]
-        >>> node = binomial_tree(kvs)
-        >>> H.join_root(node)
-        >>> print H.pprint() # doctest: +NORMALIZE_WHITESPACE
-               <1>   <8>                     <6>   <10>
-        |<12>  <25>| -15-       |<8>   <14>  <29>|
-         -18-             |<11>  <17>| -38-
-                           -27-
-        """
-        if self.min:
-            x.left = self.min
-            x.right = self.min.right
-            self.min.right.left = x
-            self.min.right = x
-            if x.key < self.min.key:
-                self.min = x
-        else:
-            self.min = x
-    
     def insert(self, x):
         """
         Insert node x into the heap after min.
@@ -362,10 +342,20 @@ class FibonacciHeap(object):
         ...     [(1,), (25,), (12,), (18,)], 
         ... ])
         >>> H1.union(H2)
-        >>> print H1.pprint()
+        >>> print H1.pprint()  # doctest: +NORMALIZE_WHITESPACE
+               <1>   <8>   <10>                    <6>
+        |<12>  <25>| -15-             |<8>   <14>  <29>|
+         -18-                   |<11>  <17>| -38-
+                                 -27-
         >>> H1.pop()  # doctest: +NORMALIZE_WHITESPACE
         <1>
-        >>> print H1.pprint()
+        >>> print H1.pprint()  # doctest: +NORMALIZE_WHITESPACE
+                           <6>         <8>   <10>
+              |<8>   <14>  <29>||<12>  <15>| -25-
+        |<11>  <17>| -38-        -18-
+         -27-
+        >>> H1.min  # doctest: +NORMALIZE_WHITESPACE
+        <6>
         """
         z = self.min
         if z:
@@ -374,12 +364,15 @@ class FibonacciHeap(object):
             if son:
                 son.parent = None
                 child = son.right
-                self.join_root(son)
-                
                 while child and child is not son:
                     child.parent = None
-                    self.join_root(child)
                     child = child.right
+                son.left.right = self.min.right
+                self.min.right.left = son.left
+                son.left = self.min
+                self.min.right = son
+                self.min.child = None
+
             # remove z
             if self.min.left is not self.min:
                 self.min.left.right = self.min.right
@@ -413,13 +406,23 @@ class FibonacciHeap(object):
                 d += 1
             A[d] = x
             
-        self.min = None
-        for i in range(D+1):
-            if A[i] is not None:
-                print A[i].pprint()
-                self.join_root(A[i])
-                if self.min is None or A[i].key < self.min.key:
-                    self.min = A[i]
+        m, index = min([(e.key, i) for i,e in enumerate(A) if e])
+        self.min = A[index]
+        
+        #self.min = None
+        #for i in range(D+1):
+        #    if A[i] is not None:
+        #        if self.min:
+        #            # remove A[i]
+        #            A[i].left.right = A[i].right
+        #            A[i].right.left = A[i].left
+        #            # add A[i] to root list
+        #            A[i].right = self.min.right
+        #            A[i].left = self.min
+        #            self.min.right.left = A[i]
+        #            self.min.right = A[i]
+        #        if self.min is None or A[i].key < self.min.key:
+        #            self.min = A[i]
     
     def link(self, y, x):
         """
@@ -428,12 +431,16 @@ class FibonacciHeap(object):
         # remove y from root list of self
         y.left.right = y.right
         y.right.left = y.left
+        
         # make y a child of x, increase the degree of x
         if x.child:
             y.right = x.child
             y.left = x.child.left
             x.child.left.right = y
             x.child.left = y
+        else:
+            y.right = y
+            y.left = y
             
         x.child = y
         y.parent = x
@@ -441,12 +448,77 @@ class FibonacciHeap(object):
         y.mark = False
     
     def decrease_key(self, x, k):
-        pass
-        
+        """
+        >>> H = FibonacciHeap()
+        >>> H.build([
+        ...     [(7,), (23,), (17,), (30,), (24,), (46,), (26,), (35,)], 
+        ...     [(18,), (39,), (21,), (52,)], 
+        ...     [(38,), (41,)]
+        ... ])
+        >>> print H.pprint() # doctest: +NORMALIZE_WHITESPACE
+                           <7>         <18>  <38>
+              |<24>  <17>  <23>||<21>  <39>| -41-
+        |<26>  <46>| -30-        -52-
+         -35-
+        >>> n46 = H.min.child.child.right
+        >>> print n46.pprint() # doctest: +NORMALIZE_WHITESPACE
+         <46>|
+        >>> H.decrease_key(n46, 15)
+        >>> print H.root_list()
+        [ <7> ,  <15> ,  <18> ,  <38> ]
+        >>> n35 = H.min.child.child.child
+        >>> print n35.pprint() # doctest: +NORMALIZE_WHITESPACE
+         -35-
+        >>> H.decrease_key(n35, 5)
+        >>> print H.root_list()
+        [ <5> ,  <15> ,  <18> ,  <38> ,  <7> ]
+        """
+        if k > x.key:
+            print 'new key is greater than current'
+            return
+        x.key = k
+        y = x.parent
+        if y and x.key < y.key:
+            self.cut(x, y)
+            self.cascading_cut(y)
+        if x.key < self.min.key:
+            self.min = x
+    
+    def cut(self, x, y):
+        # remove x from child list of y
+        if x.right is not x:
+            y.child = x.right
+        else:
+            y.child = None
+            
+        x.right.left = x.left
+        x.left.right = x.right
+        y.degree -= 1
+        # add x into root list
+        self.min.right.left = x
+        x.right = self.min.right
+        self.min.right = x
+        x.left = self.min
+
+        x.parent = None
+        x.mark = False
+    
+    def cascading_cut(self, y):
+        z = y.parent
+        if z:
+            if y.mark == False:
+                y.mark = True
+            else:
+                self.cut(y, z)
+                self.cascading_cut(z)
+    
     def delete(self, x):
-        pass
+        self.decrease_key(x, -INF)
+        self.pop()
 
     def nrow(self):
+        if not self.min:
+            return 0
         min = self.min
         nrow = min.nrow()
         p = min.right
@@ -506,8 +578,10 @@ class FibonacciHeap(object):
 
     def pprint(self, colwidth = 6):
         """
-        
+        Pretty print.
         """
+        if not self.min:
+            return
         r = []
         d = {}
         ncol = self.ncol()
@@ -525,19 +599,6 @@ class FibonacciHeap(object):
 
 
 if __name__ == '__main__':
-    #import doctest
-    #doctest.testmod()
-    H1 = FibonacciHeap()
-    H1.build([
-        [(10,)], 
-        [(6,), (29,), (14,), (38,), (8,), (17,), (11,), (27,)]
-    ])
-    H2 = FibonacciHeap()
-    H2.build([
-        [(8,), (15,)], 
-        [(1,), (25,), (12,), (18,)], 
-    ])
-    H1.union(H2)
-    print H1.pprint()
-    H1.pop()  # doctest: +NORMALIZE_WHITESPACE
-    print H1.pprint()
+    import doctest
+    doctest.testmod()
+    
