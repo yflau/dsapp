@@ -217,7 +217,8 @@ class BinomialHeap(object):
             n = len(treelist) - 1
             for i in range(n):
                 treelist[i].sibling = treelist[i+1]
-            if n > 1:
+            #if n > 1:
+            if n >= 0:
                 self.head = treelist[0]
 
     def minimum(self):
