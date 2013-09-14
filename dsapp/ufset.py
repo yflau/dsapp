@@ -218,6 +218,11 @@ class uflist(object):
         >>> tmp = [uf.union(u, v) for u,v in edges]
         >>> uf
         [[1, 8, 0], [6, 3, 2, 5, 4], [7]]
+        >>> uf = uflist(list('abcdefghij'))
+        >>> edges = [('b','d'),('e','g'),('c','a'),('h','i'),('a','b'),('f','e'),('b','c')]
+        >>> tmp = [uf.union(u, v) for u,v in edges]
+        >>> uf
+        [['c', 'a', 'b', 'd'], ['f', 'e', 'g'], ['h', 'i'], ['j']]
         """
         self.sets = [[e] for e in elements]
         self.lookup = {e:i for i,e in enumerate(elements)}
@@ -236,6 +241,10 @@ class uflist(object):
         sety = self.lookup[y]
         if setx is not sety:
             if self.sets[setx] is not None and self.sets[sety] is not None:
+                #if len(self.sets[setx]) < len(self.sets[sety]):
+                #    temp = setx
+                #    setx = sety
+                #    sety = temp
                 self.sets[setx].extend(self.sets[sety])
                 for k in self.sets[sety]:
                     self.lookup[k] = setx
@@ -300,15 +309,20 @@ def test():
                   test_UnionFind:         0.64 for result  80001
     
     1,000,000 vertices and 200,000 edges
-                     test_ufdict:        11.30 for result 800000
-                     test_uflist:         2.97 for result 800000
-                  test_UnionFind:         7.03 for result 800000
+                     test_ufdict:        11.30 for result 800000  285 MB
+                     test_uflist:         2.97 for result 800000  135 MB
+                  test_UnionFind:         7.03 for result 800000  250 MB
+                    
+    2,000,000 vertices and 400,000 edges
+                     test_ufdict:        24.03 for result 1600001 572 MB
+                     test_uflist:         6.17 for result 1600001 263 MB
+                  test_UnionFind:        13.95 for result 1600001 527 MB
     """
     import time
 
     # see above: test data parameters
-    SIZE_OF_DOMAIN = 10000
-    SIZE_OF_EDGES = 2000
+    SIZE_OF_DOMAIN = 2000000
+    SIZE_OF_EDGES = 400000
 
     edges = [(random.randrange(SIZE_OF_DOMAIN), random.randrange(SIZE_OF_DOMAIN)) for k in range(SIZE_OF_EDGES)]
     vertices = range(SIZE_OF_DOMAIN)
@@ -316,7 +330,7 @@ def test():
     functions = {
         'test_ufdict' : test_ufdict,
         'test_UnionFind' : test_UnionFind,
-        'test_ufset' : test_ufset,
+        #'test_ufset' : test_ufset,
         'test_uflist' : test_uflist,
     }
 
