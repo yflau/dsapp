@@ -75,7 +75,7 @@ class FibonacciNode(object):
             if child:
                 if node.degree > 1:
                     #icol = icol - child.ncol()
-                    icol = icol - node.ncol()/2
+                    icol = icol - node.ncol()/2  # tree may be degenerated
                 q.put((level+1, icol, child))
                 ochild = child
                 while child.right and child.right is not ochild:
@@ -129,7 +129,7 @@ class FibonacciNode(object):
             d.setdefault(irow, {}).update({icol : node})
 
         for i in range(nrow):
-            if i not in d:  # tree of FIB-HEAP won't be a complete binomial tree
+            if i not in d:  # tree of FIB-HEAP may be non-complete binomial tree
                 continue    # after decrease_key and delete operation
             tmp = [str(d[i].get(j, '')).ljust(colwidth) for j in range(ncol)]
             r.append(''.join(tmp).rjust(width))
@@ -624,7 +624,7 @@ class FibonacciHeap(object):
             if child:
                 if node.degree > 1:
                     #icol = icol - child.ncol()
-                    icol = icol - node.ncol()/2
+                    icol = icol - node.ncol()/2  # tree may be degenerated
                 q.put((level+1, icol, child))
                 ochild = child
                 while child.right and child.right is not ochild:
@@ -648,8 +648,8 @@ class FibonacciHeap(object):
             d.setdefault(irow, {}).update({icol : node})
 
         for i in range(nrow):
-            if i not in d:
-                continue
+            if i not in d:  # tree of FIB-HEAP may be non-complete binomial tree
+                continue    # after decrease_key and delete operation
             tmp = [str(d[i].get(j, '')).ljust(colwidth) for j in range(ncol)]
             r.append(''.join(tmp).rjust(width))
 
