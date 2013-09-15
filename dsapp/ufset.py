@@ -290,22 +290,41 @@ class uforest(object):
         >>> uf = uforest(vertices)
         >>> tmp = [uf.union(u, v) for u,v in edges]
         >>> uf
-        [(8, [0, 1, 8]), (4, [2, 3, 4, 5, 6]), (7, [7])]
+        [(4, [4, 5, 3, 6, 2]), (7, [7]), (8, [8, 1, 0])]
         >>> list(uf)
-        [(8, [0, 1, 8]), (4, [2, 3, 4, 5, 6]), (7, [7])]
-        >>> [e.rank for e in uf.sets]
+        [(4, [4, 5, 3, 6, 2]), (7, [7]), (8, [8, 1, 0])]
+        >>> [e.rank for e in uf.lookup.itervalues()]
         [0, 0, 0, 1, 2, 0, 0, 0, 1]
-        >>> [str(e.parent) for e in uf.sets]
-        ['(8)', '(8)', '(4)', '(4)', '(4)', '(4)', '(4)', '(7)', '(8)']
+        >>> [str(e.parent) for e in uf.lookup.itervalues()]
+        ['(8)', '(8)', '(3)', '(4)', '(4)', '(4)', '(3)', '(7)', '(8)']
         """
-        self.sets = [ufnode(e) for e in elements]
-        self.lookup = {e.key:e for e in self.sets}
+        self.lookup = {k:ufnode(k) for k in elements}
+        self.sets = {k:[k] for k in self.lookup}
+    
+    def rfind(self, x):
+        """
+        Recursive version find.
+        """
+        if not isinstance(x, ufnode):
+            x = self.lookup[x]
+
+        if x != x.parent:
+            x.parent = self.find(x.parent)
+        
+        return x.parent
     
     def find(self, x):
         if not isinstance(x, ufnode):
             x = self.lookup[x]
-        if x != x.parent:
-            x.parent = self.find(x.parent)
+
+        p = x.parent
+        if x != p:
+            path = [x]
+            while p.parent is not p:
+                path.append(p)
+                p = p.parent
+            for e in path:
+                e.parent = p
         
         return x.parent
 
@@ -317,21 +336,20 @@ class uforest(object):
         setx = self.find(x)
         sety = self.find(y)
         if setx != sety:
+            xk = setx.key
+            yk = sety.key
             if setx.rank > sety.rank:
                 sety.parent = setx
+                self.sets.setdefault(xk,[]).extend(self.sets.pop(yk,[]))
             else:
                 setx.parent = sety
+                self.sets.setdefault(yk,[]).extend(self.sets.pop(xk,[]))
                 if setx.rank == sety.rank:
                     sety.rank += 1
 
     def __iter__(self):
-        result = {}
-        for e in self.sets:
-            root = self.find(e).key
-            result.setdefault(root, []).append(e.key)
-        
-        for root, set in result.iteritems():
-            yield (root, set)
+        for k,s in self.sets.iteritems():
+            yield (k, s)
 
     def __str__(self):
         return str(list(self))
@@ -378,7 +396,7 @@ def test_uforest(edges, vertices):
     for (u, v) in edges:
         uf.union(u, v)
 
-    return list(uf)
+    return uf.sets
 
 def test():
     """
@@ -389,14 +407,14 @@ def test():
                   test_UnionFind:         0.09 for result  16001
                     
     1,000,00 vertices and 20,000 edges
-                    test_uforest:         1.02 for result  80001
+                    test_uforest:         0.58 for result  80001
                      test_ufdict:         0.59 for result  80001
                      test_uflist:         0.22 for result  80001
                   test_UnionFind:         0.64 for result  80001
     
     1,000,000 vertices and 200,000 edges
-                    test_uforest:        11.92 for result 800000  333 MB
-                     test_ufdict:        11.30 for result 800000  285 MB
+                    test_uforest:         8.41 for result 800000  383 MB
+                     test_ufdict:        11.30 for result 800000  415 MB
                      test_uflist:         2.97 for result 800000  135 MB
                   test_UnionFind:         7.03 for result 800000  250 MB
                     
@@ -408,8 +426,8 @@ def test():
     import time
 
     # see above: test data parameters
-    SIZE_OF_DOMAIN = 1000000
-    SIZE_OF_EDGES = 200000
+    SIZE_OF_DOMAIN = 100000
+    SIZE_OF_EDGES = 20000
 
     edges = [(random.randrange(SIZE_OF_DOMAIN), random.randrange(SIZE_OF_DOMAIN)) for k in range(SIZE_OF_EDGES)]
     vertices = range(SIZE_OF_DOMAIN)
@@ -442,4 +460,3 @@ if __name__ == '__main__':
     import doctest
     doctest.testmod()
     test()
-
