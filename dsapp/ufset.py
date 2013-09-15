@@ -68,6 +68,9 @@ class ufdict(object):
 ################################################################################
 
 class UnionFind:
+    """
+    From: http://code.activestate.com/recipes/215912/
+    """
 
     def __init__(self):
         '''
@@ -208,6 +211,9 @@ class ufset(object):
 class uflist(object):
     """
     From: http://pyalda.com/data-types/general/disjoint-sets.html
+    
+    This implemention combines the list and dict, the list is used as storage,
+    the dict is used to implement find funcionality.
     """
 
     def __init__(self, elements = []):
@@ -228,6 +234,7 @@ class uflist(object):
         self.lookup = {e:i for i,e in enumerate(elements)}
     
     def find(self, x):
+        """O(1) find with hashtable."""
         if x in self.lookup:
             return self.lookup[x]
         else:
@@ -258,6 +265,77 @@ class uflist(object):
     def __str__(self):
         return str(list(self))
     
+    __repr__ = __str__
+
+UFSet = uflist
+
+################################################################################
+
+class ufnode(object):
+    
+    def __init__(self, key = None):
+        self.key = key
+        self.rank = 0
+        self.parent = self
+    
+    def __str__(self):
+        return '(%s)' % self.key
+
+class uforest(object):
+    
+    def __init__(self, elements):
+        """
+        >>> vertices = range(9)
+        >>> edges = [(5,4), (6,3), (6,2), (1,8), (3,4), (1,0)]
+        >>> uf = uforest(vertices)
+        >>> tmp = [uf.union(u, v) for u,v in edges]
+        >>> uf
+        [(8, [0, 1, 8]), (4, [2, 3, 4, 5, 6]), (7, [7])]
+        >>> list(uf)
+        [(8, [0, 1, 8]), (4, [2, 3, 4, 5, 6]), (7, [7])]
+        >>> [e.rank for e in uf.sets]
+        [0, 0, 0, 1, 2, 0, 0, 0, 1]
+        >>> [str(e.parent) for e in uf.sets]
+        ['(8)', '(8)', '(4)', '(4)', '(4)', '(4)', '(4)', '(7)', '(8)']
+        """
+        self.sets = [ufnode(e) for e in elements]
+        self.lookup = {e.key:e for e in self.sets}
+    
+    def find(self, x):
+        if not isinstance(x, ufnode):
+            x = self.lookup[x]
+        if x != x.parent:
+            x.parent = self.find(x.parent)
+        
+        return x.parent
+
+    def union(self, x, y):
+        if not isinstance(x, ufnode):
+            x = self.lookup[x]
+        if not isinstance(y, ufnode):
+            y = self.lookup[y]
+        setx = self.find(x)
+        sety = self.find(y)
+        if setx != sety:
+            if setx.rank > sety.rank:
+                sety.parent = setx
+            else:
+                setx.parent = sety
+                if setx.rank == sety.rank:
+                    sety.rank += 1
+
+    def __iter__(self):
+        result = {}
+        for e in self.sets:
+            root = self.find(e).key
+            result.setdefault(root, []).append(e.key)
+        
+        for root, set in result.iteritems():
+            yield (root, set)
+
+    def __str__(self):
+        return str(list(self))
+
     __repr__ = __str__
 
 ################################################################################
@@ -295,6 +373,13 @@ def test_uflist(edges, vertices):
 
     return list(uf)
 
+def test_uforest(edges, vertices):
+    uf = uforest(vertices)
+    for (u, v) in edges:
+        uf.union(u, v)
+
+    return list(uf)
+
 def test():
     """
     20,000 vertices and 4,000 edges
@@ -304,25 +389,27 @@ def test():
                   test_UnionFind:         0.09 for result  16001
                     
     1,000,00 vertices and 20,000 edges
+                    test_uforest:         1.02 for result  80001
                      test_ufdict:         0.59 for result  80001
                      test_uflist:         0.22 for result  80001
                   test_UnionFind:         0.64 for result  80001
     
     1,000,000 vertices and 200,000 edges
+                    test_uforest:        11.92 for result 800000  333 MB
                      test_ufdict:        11.30 for result 800000  285 MB
                      test_uflist:         2.97 for result 800000  135 MB
                   test_UnionFind:         7.03 for result 800000  250 MB
                     
     2,000,000 vertices and 400,000 edges
-                     test_ufdict:        24.03 for result 1600001 572 MB
+                     test_ufdict:        24.03 for result 1600001 752 MB
                      test_uflist:         6.17 for result 1600001 263 MB
                   test_UnionFind:        13.95 for result 1600001 527 MB
     """
     import time
 
     # see above: test data parameters
-    SIZE_OF_DOMAIN = 2000000
-    SIZE_OF_EDGES = 400000
+    SIZE_OF_DOMAIN = 1000000
+    SIZE_OF_EDGES = 200000
 
     edges = [(random.randrange(SIZE_OF_DOMAIN), random.randrange(SIZE_OF_DOMAIN)) for k in range(SIZE_OF_EDGES)]
     vertices = range(SIZE_OF_DOMAIN)
@@ -332,6 +419,7 @@ def test():
         'test_UnionFind' : test_UnionFind,
         #'test_ufset' : test_ufset,
         'test_uflist' : test_uflist,
+        'test_uforest' : test_uforest,
     }
 
     expected_result = None
