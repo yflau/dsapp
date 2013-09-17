@@ -417,6 +417,143 @@ class Graph:
         
         return A
 
+    def relax(self, u, v, w):
+        if v.key > u.key + w:
+            v.key = u.key + w
+            v.parent = u
+
+    def bellman_ford(self, r):
+        """
+        Bellman Ford shortest paths.
+        
+        >>> g = Graph()
+        >>> tmp = [g.add_vertex(i) for i in list('STXYZ')]
+        >>> g.vertices           # doctest: +SKIP
+        >>> edges = [
+        ...     ('S','T',6),('S','Y',7),('T','X',5),
+        ...     ('T','Y',8),('T','Z',-4),('X','T',-2),
+        ...     ('Y','X',-3),('Y','Z',9),('Z','X',7),
+        ...     ('Z','S',2),
+        ... ]
+        >>> for e in edges:
+        ...     g.add_edge(*e)
+        >>> pprint(g.bellman_ford('S'))
+        [('S', 'Y', 7), ('S', 'X', 4), ('S', 'S', 0), ('S', 'Z', -2), ('S', 'T', 2)]
+        """
+        A = []
+        if not isinstance(r, Vertex):
+            r = self[r]
+        if not r:
+            print 'invalid root'
+            return A
+        for v in self.vertices.itervalues():
+            v.key = INF
+            v.parent = None
+        r.key = 0
+        
+        nv = len(self.vertices)
+        edges = self.edges
+        for i in range(nv-1):
+            for e,w in edges.iteritems():
+                self.relax(self[e[0]], self[e[1]], w)
+        for e,w in edges.iteritems():
+            if self[e[1]].key > self[e[0]].key + w:
+                return False
+                
+        for v in self.vertices.itervalues():
+            A.append((r.id, v.id, v.key))
+        
+        return A
+
+    def dag_sp(self, r):
+        """
+        
+        >>> g = Graph()
+        >>> tmp = [g.add_vertex(i) for i in list('RSTXYZ')]
+        >>> g.vertices           # doctest: +SKIP
+        >>> edges = [
+        ...     ('R','S',5),('R','T',3),('S','T',2),
+        ...     ('S','X',6),('T','X',7),('T','Y',4),
+        ...     ('T','Z',2),('X','Y',-1),('X','Z',1),
+        ...     ('Y','Z',-2),
+        ... ]
+        >>> for e in edges:
+        ...     g.add_edge(*e)
+        >>> pprint(g.dag_sp('S'))
+        [('S', 'S', 0),
+         ('S', 'R', inf),
+         ('S', 'T', 2),
+         ('S', 'Y', 5),
+         ('S', 'X', 6),
+         ('S', 'Z', 3)]
+        """
+        A = []
+        if not isinstance(r, Vertex):
+            r = self[r]
+        if not r:
+            print 'invalid root'
+            return A
+        vs = [self[k] for k in zip(*self.topological_sort())[0]]
+        
+        for v in self.vertices.itervalues():
+            v.key = INF
+            v.parent = None
+        r.key = 0
+        
+        for u in vs:
+            for v,w in u.neighbors.iteritems():
+                self.relax(u, v, w)
+
+        for v in self.vertices.itervalues():
+            A.append((r.id, v.id, v.key))
+       
+        return A
+
+    def dijkstra(self, s):
+        """
+        
+        >>> g = Graph()
+        >>> tmp = [g.add_vertex(i) for i in list('STXYZ')]
+        >>> g.vertices           # doctest: +SKIP
+        >>> edges = [
+        ...     ('S','T',10),('S','Y',5),('T','X',1),
+        ...     ('T','Y',2),('X','Z',4),('Y','T',3),
+        ...     ('Y','X',9),('Y','Z',2),('Z','X',6),
+        ...     ('Z','S',7),
+        ... ]
+        >>> for e in edges:
+        ...     g.add_edge(*e)
+        >>> pprint(g.dijkstra('S'))
+        [('S', 0), ('Y', 5), ('Z', 7), ('T', 8), ('X', 9)]
+        """
+        S = []
+        if not isinstance(s, Vertex):
+            s = self[s]
+        if not s:
+            print 'invalid root'
+            return A
+        
+        for v in self.vertices.itervalues():
+            v.key = INF
+            v.parent = None
+        s.key = 0
+        
+        Q = [(v.key, v) for v in self.vertices.values()]
+        heapq.heapify(Q)
+        while Q:
+            k, u = heapq.heappop(Q)
+            S.append((u.id, u.key))
+            for v,w in u.neighbors.iteritems():
+                if len(Q) > 0:
+                    qv = zip(*Q)[1]
+                    if v in qv:
+                        index = qv.index(v)
+                        Q.pop(index)
+                        self.relax(u, v, w)
+                        heapq.heappush(Q, (v.key, v))
+        
+        return S
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
