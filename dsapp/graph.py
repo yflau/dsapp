@@ -12,7 +12,10 @@ Reference:
 """
 
 import Queue
+import heapq
 from pprint import pprint
+
+from ufset import UFSet
 
 INF = float('inf')
 WHITE = 'WHITE'
@@ -82,6 +85,16 @@ class Graph:
             return None
     __getitem__ = get_vertex
 
+    def get_edges(self):
+        result = {}
+        
+        for k in self.vertices:
+            for v,w in self[k].neighbors.iteritems():
+                result[(k, v.id)] = w
+        
+        return result
+    edges = property(get_edges)
+
     def __contains__(self,n):
         return n in self.vertices
 
@@ -92,6 +105,7 @@ class Graph:
         if t not in self.vertices:
             nv = self.add_vertex(t)
         self.vertices[f].add_neighbor(self.vertices[t], cost)
+        self.edges[(f,t)] = cost
 
     def __iter__(self):
         return iter(self.vertices.values())
@@ -311,6 +325,97 @@ class Graph:
                     break
         
         return trees
+
+    def kruskal(self):
+        """
+        Kruskal MST.
+        
+        >>> g = Graph()
+        >>> tmp = [g.add_vertex(i) for i in list('ABCDEFGHI')]
+        >>> g.vertices           # doctest: +SKIP
+        >>> edges = [
+        ...     ('A','B',4),('B','C',8),('C','D',7),
+        ...     ('D','E',9),('E','F',10),('F','G',2),
+        ...     ('G','H',1),('H','A',8),('B','H',11),
+        ...     ('H','I',7),('G','I',6),('C','I',2),
+        ...     ('C','F',4),('D','F',14),
+        ... ]
+        >>> for e in edges:
+        ...     g.add_edge(*e)
+        >>> pprint(g.kruskal())
+        [(('G', 'H'), 1),
+         (('C', 'I'), 2),
+         (('F', 'G'), 2),
+         (('C', 'F'), 4),
+         (('A', 'B'), 4),
+         (('C', 'D'), 7),
+         (('B', 'C'), 8),
+         (('D', 'E'), 9)]
+        """
+        A = []
+        
+        uf = UFSet(self.vertices.keys())
+        edges = sorted(
+            [(e,w) for e,w in self.edges.iteritems()], 
+            key = lambda x:x[1]
+        )
+        for e,w in edges:
+            if uf.find(e[0]) != uf.find(e[1]):
+                A.append(((e), w))
+                uf.union(*e)
+                
+        return A
+
+    def prism(self, r):
+        """
+        Prism MST.
+        
+        >>> g = Graph()
+        >>> tmp = [g.add_vertex(i) for i in list('ABCDEFGHI')]
+        >>> g.vertices           # doctest: +SKIP
+        >>> edges = [
+        ...     ('A','B',4),('B','C',8),('C','D',7),
+        ...     ('D','E',9),('E','F',10),('F','G',2),
+        ...     ('G','H',1),('H','A',8),('B','H',11),
+        ...     ('H','I',7),('G','I',6),('C','I',2),
+        ...     ('C','F',4),('D','F',14),
+        ... ]
+        >>> for e in edges:
+        ...     g.add_edge(*e)
+        >>> pprint(g.prism('A'))
+        [('A', 0),
+         ('B', 4),
+         ('C', 8),
+         ('I', 2),
+         ('F', 4),
+         ('G', 2),
+         ('H', 1),
+         ('D', 7),
+         ('E', 9)]
+        """
+        if not isinstance(r, Vertex):
+            r = self[r]
+        if not r:
+            print 'invalid root'
+            return A
+        for v in self.vertices.itervalues():
+            v.key = INF
+            v.parent = None
+        r.key = 0
+        Q = [(0, r)]
+        A = [(r.id, 0)]
+        i = 0
+        while Q:
+            k, u = heapq.heappop(Q)
+            if u.id not in zip(*A)[0]:
+                A.append((u.id, k))
+            for v,w in u.neighbors.iteritems():
+                if w < v.key:
+                    v.parent = u
+                    v.key = w
+                    heapq.heappush(Q, (w, v))
+        
+        return A
 
 if __name__ == '__main__':
     import doctest
